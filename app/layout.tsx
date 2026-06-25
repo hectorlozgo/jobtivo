@@ -10,8 +10,9 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
+  title: 'Control de horas | Cobro por categorías',
+  description:
+    'Registra horas normales, extra, festivas y nocturnas por categoría (Mozo, Mozo Especializado, Carretillero), aplica el IRPF y calcula tu cobro por día, semana o mes.',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -46,7 +47,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="es" className={`${geistSans.variable} ${geistMono.variable} bg-background`}>
       <body className="font-sans antialiased">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
