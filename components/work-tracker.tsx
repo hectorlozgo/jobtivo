@@ -10,8 +10,10 @@ import { DayEditor } from "@/components/day-editor"
 import { SettingsPanel } from "@/components/settings-panel"
 import { SummaryCards } from "@/components/summary-cards"
 import { summarize } from "@/lib/calc"
+import { YearChart } from "@/components/year-chart"
 import {
   type AppData,
+  type CategoryId,
   type DayEntry,
   type Settings,
   DEFAULT_DATA,
@@ -43,8 +45,8 @@ import {
 type ViewMode = "mes" | "semana" | "dia"
 type Tab = "calendario" | "tarifas"
 
-function emptyEntry(iso: string): DayEntry {
-  return { date: iso, category: "G1", hours: { normal: 0, extra: 0, festiva: 0, nocturna: 0 } }
+function emptyEntry(iso: string, category: CategoryId): DayEntry {
+  return { date: iso, category, hours: { normal: 0, extra: 0, festiva: 0, nocturna: 0 } }
 }
 
 function hasHours(entry: DayEntry): boolean {
@@ -72,7 +74,7 @@ export function WorkTracker() {
   }, [data, mounted])
 
   const settings = data.settings
-  const selectedEntry = data.entries[selectedISO] ?? emptyEntry(selectedISO)
+  const selectedEntry = data.entries[selectedISO] ?? emptyEntry(selectedISO, settings.defaultCategory)
 
   function updateEntry(entry: DayEntry) {
     setData((prev) => {
@@ -96,6 +98,24 @@ export function WorkTracker() {
 
   function updateSettings(s: Settings) {
     setData((prev) => ({ ...prev, settings: s }))
+  }
+
+  // Copia la categoría y horas del día indicado a lunes-viernes de su semana.
+  function fillWeekdays(template: DayEntry) {
+    if (!hasHours(template)) return
+    const start = startOfWeek(fromISO(template.date))
+    setData((prev) => {
+      const entries = { ...prev.entries }
+      for (let i = 0; i < 5; i++) {
+        const iso = toISO(addDays(start, i))
+        entries[iso] = {
+          date: iso,
+          category: template.category,
+          hours: { ...template.hours },
+        }
+      }
+      return { ...prev, entries }
+    })
   }
 
   function selectDay(iso: string) {
@@ -297,10 +317,17 @@ export function WorkTracker() {
                   settings={settings}
                   onChange={updateEntry}
                   onClear={() => clearDay(selectedISO)}
+                  onFillWeekdays={fillWeekdays}
                 />
               </div>
             </Card>
           </div>
+
+          <YearChart
+            year={(view === "dia" ? fromISO(selectedISO) : cursor).getFullYear()}
+            entries={data.entries}
+            settings={settings}
+          />
         </div>
       )}
 

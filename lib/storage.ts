@@ -80,6 +80,9 @@ function sanitizeSettings(input: unknown): Settings {
   }
   return {
     irpf: obj.irpf === undefined ? DEFAULT_DATA.settings.irpf : clampPercent(obj.irpf),
+    defaultCategory: isValidCategory(obj.defaultCategory)
+      ? obj.defaultCategory
+      : DEFAULT_DATA.settings.defaultCategory,
     rates,
   }
 }

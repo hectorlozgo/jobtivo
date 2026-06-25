@@ -9,6 +9,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { HOUR_COLOR_VAR } from "@/lib/hour-colors"
 import { clampPercent, clampRate } from "@/lib/storage"
 import {
@@ -79,19 +86,41 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
     onChange(next)
   }
 
+  function setDefaultCategory(value: CategoryId) {
+    onChange({ ...settings, defaultCategory: value })
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Retención de IRPF</CardTitle>
+          <CardTitle>General</CardTitle>
           <CardDescription>
-            Porcentaje aplicado sobre el importe bruto para calcular el neto.
+            IRPF aplicado sobre el bruto y categoría preseleccionada al registrar un día.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-wrap gap-6">
           <div className="flex max-w-40 flex-col gap-1.5">
             <Label htmlFor="irpf">IRPF (%)</Label>
             <NumberField id="irpf" value={settings.irpf} onCommit={setIrpf} suffix="%" />
+          </div>
+          <div className="flex min-w-52 flex-col gap-1.5">
+            <Label htmlFor="default-category">Categoría predeterminada</Label>
+            <Select
+              value={settings.defaultCategory}
+              onValueChange={(v) => setDefaultCategory(v as CategoryId)}
+            >
+              <SelectTrigger id="default-category" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name} ({c.short})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>

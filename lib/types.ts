@@ -25,6 +25,7 @@ export type Rates = Record<CategoryId, RateSet>
 export interface Settings {
   irpf: number // porcentaje 0-100
   rates: Rates
+  defaultCategory: CategoryId // categoría preseleccionada al registrar un día
 }
 
 // Horas registradas en un día concreto, asociadas a una categoría.
@@ -45,6 +46,7 @@ export const MAX_TOTAL_HOURS_PER_DAY = 12
 export const DEFAULT_DATA: AppData = {
   settings: {
     irpf: 15,
+    defaultCategory: "G1",
     rates: {
       G1: { normal: 12, extra: 18, festiva: 22, nocturna: 16 },
       G2: { normal: 15, extra: 22, festiva: 27, nocturna: 19 },

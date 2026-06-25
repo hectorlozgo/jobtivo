@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {
@@ -23,7 +23,7 @@ import {
   MAX_TOTAL_HOURS_PER_DAY,
 } from "@/lib/types"
 import { formatLongDate } from "@/lib/dates"
-import { Trash2 } from "lucide-react"
+import { CalendarRange, Trash2 } from "lucide-react"
 
 interface DayEditorProps {
   dateISO: string
@@ -31,18 +31,41 @@ interface DayEditorProps {
   settings: Settings
   onChange: (entry: DayEntry) => void
   onClear: () => void
+  onFillWeekdays?: (entry: DayEntry) => void
 }
 
-export function DayEditor({ dateISO, entry, settings, onChange, onClear }: DayEditorProps) {
-  const totals = useMemo(() => entryTotals(entry, settings), [entry, settings])
-  const overLimit = totals.totalHours > MAX_TOTAL_HOURS_PER_DAY
+export function DayEditor({
+  dateISO,
+  entry,
+  settings,
+  onChange,
+  onClear,
+  onFillWeekdays,
+}: DayEditorProps) {
+  // La categoría se mantiene en estado local para que la selección persista
+  // aunque el día todavía no tenga horas (la entrada vacía no se almacena).
+  const [category, setCategoryState] = useState<CategoryId>(entry.category)
 
-  function setCategory(category: CategoryId) {
-    onChange({ ...entry, category })
+  // Al cambiar de día, sincroniza con la categoría del día o la predeterminada.
+  useEffect(() => {
+    setCategoryState(entry.category)
+  }, [dateISO, entry.category])
+
+  const effectiveEntry = useMemo<DayEntry>(
+    () => ({ ...entry, category }),
+    [entry, category],
+  )
+  const totals = useMemo(() => entryTotals(effectiveEntry, settings), [effectiveEntry, settings])
+  const overLimit = totals.totalHours > MAX_TOTAL_HOURS_PER_DAY
+  const hasHours = totals.totalHours > 0
+
+  function setCategory(next: CategoryId) {
+    setCategoryState(next)
+    onChange({ ...entry, category: next })
   }
 
   function setHours(type: HourType, value: number) {
-    onChange({ ...entry, hours: { ...entry.hours, [type]: value } })
+    onChange({ ...entry, category, hours: { ...entry.hours, [type]: value } })
   }
 
   const dateLabel = formatLongDate(new Date(dateISO + "T00:00:00"))
@@ -56,7 +79,7 @@ export function DayEditor({ dateISO, entry, settings, onChange, onClear }: DayEd
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="category">Categoría</Label>
-        <Select value={entry.category} onValueChange={(v) => setCategory(v as CategoryId)}>
+        <Select value={category} onValueChange={(v) => setCategory(v as CategoryId)}>
           <SelectTrigger id="category" className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -100,6 +123,20 @@ export function DayEditor({ dateISO, entry, settings, onChange, onClear }: DayEd
           <p className="font-semibold tabular-nums text-primary">{formatEur(totals.gross)}</p>
         </div>
       </div>
+
+      {onFillWeekdays && (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={!hasHours}
+          onClick={() => onFillWeekdays(effectiveEntry)}
+          className="justify-center"
+        >
+          <CalendarRange className="size-4" />
+          Aplicar a toda la semana (L–V)
+        </Button>
+      )}
 
       <Button
         type="button"
