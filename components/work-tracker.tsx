@@ -1,24 +1,29 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { MonthView } from "@/components/month-view"
 import { WeekView } from "@/components/week-view"
 import { DayEditor } from "@/components/day-editor"
 import { SettingsPanel } from "@/components/settings-panel"
 import { SummaryCards } from "@/components/summary-cards"
-import { summarize } from "@/lib/calc"
 import { YearChart } from "@/components/year-chart"
+import { summarize } from "@/lib/calc"
+import { buildExport, exportCsv, exportExcel, exportPdf } from "@/lib/export"
+import { useAppData } from "@/lib/use-app-data"
+import { sanitizeData } from "@/lib/validation"
 import {
-  type AppData,
   type CategoryId,
   type DayEntry,
-  type Settings,
-  DEFAULT_DATA,
 } from "@/lib/types"
-import { exportJson, importJson, loadData, saveData } from "@/lib/storage"
 import {
   addDays,
   addMonths,
@@ -38,6 +43,9 @@ import {
   ChevronRight,
   Clock,
   Download,
+  FileSpreadsheet,
+  FileText,
+  FileType,
   SlidersHorizontal,
   Upload,
 } from "lucide-react"
@@ -49,73 +57,37 @@ function emptyEntry(iso: string, category: CategoryId): DayEntry {
   return { date: iso, category, hours: { normal: 0, extra: 0, festiva: 0, nocturna: 0 } }
 }
 
-function hasHours(entry: DayEntry): boolean {
-  return Object.values(entry.hours).some((h) => h > 0)
-}
-
 export function WorkTracker() {
-  const [data, setData] = useState<AppData>(DEFAULT_DATA)
-  const [mounted, setMounted] = useState(false)
+  const { data, isLoading, saveEntry, removeEntry, saveMany, saveSettings, replaceAll } =
+    useAppData()
   const [tab, setTab] = useState<Tab>("calendario")
   const [view, setView] = useState<ViewMode>("mes")
   const [cursor, setCursor] = useState<Date>(() => new Date())
   const [selectedISO, setSelectedISO] = useState<string>(() => toISO(new Date()))
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // Carga inicial desde localStorage (JSON).
-  useEffect(() => {
-    setData(loadData())
-    setMounted(true)
-  }, [])
-
-  // Persiste cualquier cambio.
-  useEffect(() => {
-    if (mounted) saveData(data)
-  }, [data, mounted])
-
   const settings = data.settings
-  const selectedEntry = data.entries[selectedISO] ?? emptyEntry(selectedISO, settings.defaultCategory)
+  const selectedEntry =
+    data.entries[selectedISO] ?? emptyEntry(selectedISO, settings.defaultCategory)
 
   function updateEntry(entry: DayEntry) {
-    setData((prev) => {
-      const next = { ...prev, entries: { ...prev.entries } }
-      if (hasHours(entry)) {
-        next.entries[entry.date] = entry
-      } else {
-        delete next.entries[entry.date]
-      }
-      return next
-    })
+    void saveEntry(entry)
   }
 
   function clearDay(iso: string) {
-    setData((prev) => {
-      const entries = { ...prev.entries }
-      delete entries[iso]
-      return { ...prev, entries }
-    })
-  }
-
-  function updateSettings(s: Settings) {
-    setData((prev) => ({ ...prev, settings: s }))
+    void removeEntry(iso)
   }
 
   // Copia la categoría y horas del día indicado a lunes-viernes de su semana.
   function fillWeekdays(template: DayEntry) {
-    if (!hasHours(template)) return
+    if (!Object.values(template.hours).some((h) => h > 0)) return
     const start = startOfWeek(fromISO(template.date))
-    setData((prev) => {
-      const entries = { ...prev.entries }
-      for (let i = 0; i < 5; i++) {
-        const iso = toISO(addDays(start, i))
-        entries[iso] = {
-          date: iso,
-          category: template.category,
-          hours: { ...template.hours },
-        }
-      }
-      return { ...prev, entries }
-    })
+    const entries: DayEntry[] = []
+    for (let i = 0; i < 5; i++) {
+      const iso = toISO(addDays(start, i))
+      entries.push({ date: iso, category: template.category, hours: { ...template.hours } })
+    }
+    void saveMany(entries)
   }
 
   function selectDay(iso: string) {
@@ -170,14 +142,9 @@ export function WorkTracker() {
     return formatLongDate(fromISO(selectedISO))
   }
 
-  function handleExport() {
-    const blob = new Blob([exportJson(data)], { type: "application/json" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `horas-trabajo-${toISO(new Date())}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+  // Construye el paquete de exportación con las entradas del periodo visible.
+  function currentBundle() {
+    return buildExport(periodEntries, settings, periodLabel())
   }
 
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -186,7 +153,8 @@ export function WorkTracker() {
     const reader = new FileReader()
     reader.onload = () => {
       try {
-        setData(importJson(String(reader.result)))
+        const parsed = sanitizeData(JSON.parse(String(reader.result)))
+        void replaceAll(parsed)
       } catch {
         // Archivo no válido: se ignora.
       }
@@ -195,9 +163,15 @@ export function WorkTracker() {
     e.target.value = ""
   }
 
-  if (!mounted) {
-    return <div className="min-h-screen bg-background" aria-hidden="true" />
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">Cargando datos…</p>
+      </div>
+    )
   }
+
+  const hasData = periodEntries.some((e) => Object.values(e.hours).some((h) => h > 0))
 
   return (
     <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-10">
@@ -212,10 +186,28 @@ export function WorkTracker() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="size-4" />
-            Exportar
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={<Button variant="outline" size="sm" disabled={!hasData} />}
+            >
+              <Download className="size-4" />
+              Exportar
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => exportCsv(currentBundle())}>
+                <FileText className="size-4" />
+                CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void exportExcel(currentBundle())}>
+                <FileSpreadsheet className="size-4" />
+                Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void exportPdf(currentBundle())}>
+                <FileType className="size-4" />
+                PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
             <Upload className="size-4" />
             Importar
@@ -245,7 +237,7 @@ export function WorkTracker() {
       </Tabs>
 
       {tab === "tarifas" ? (
-        <SettingsPanel settings={settings} onChange={updateSettings} />
+        <SettingsPanel settings={settings} onChange={(s) => void saveSettings(s)} />
       ) : (
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -332,8 +324,8 @@ export function WorkTracker() {
       )}
 
       <footer className="mt-auto pt-4 text-center text-xs text-muted-foreground">
-        Los datos se guardan localmente en tu navegador (JSON). Usa Exportar para hacer copia de
-        seguridad.
+        Los datos se guardan en una base de datos SQLite en el servidor. Exporta a CSV, Excel o PDF
+        para compartir o archivar.
       </footer>
     </main>
   )

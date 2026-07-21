@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { HOUR_COLOR_VAR } from "@/lib/hour-colors"
-import { clampPercent, clampRate } from "@/lib/storage"
+import { clampPercent, clampRate } from "@/lib/validation"
 import {
   type CategoryId,
   type HourType,
