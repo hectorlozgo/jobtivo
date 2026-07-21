@@ -67,6 +67,7 @@ export function WorkTracker() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const settings = data.settings
+  const selectedExists = Boolean(data.entries[selectedISO])
   const selectedEntry =
     data.entries[selectedISO] ?? emptyEntry(selectedISO, settings.defaultCategory)
 
@@ -306,8 +307,9 @@ export function WorkTracker() {
                 <DayEditor
                   dateISO={selectedISO}
                   entry={selectedEntry}
+                  exists={selectedExists}
                   settings={settings}
-                  onChange={updateEntry}
+                  onSave={updateEntry}
                   onClear={() => clearDay(selectedISO)}
                   onFillWeekdays={fillWeekdays}
                 />
