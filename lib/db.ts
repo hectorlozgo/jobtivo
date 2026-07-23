@@ -8,8 +8,10 @@ declare global {
   var __prisma: PrismaClient | undefined
 }
 
+const databaseUrl = process.env.DATABASE_URL ?? process.env.PRISMA_DATABASE_URL ?? process.env.POSTGRES_URL ?? ''
+
 const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL ?? ''
+  connectionString: databaseUrl
 })
 
 const client = globalThis.__prisma ?? new PrismaClient({ adapter })
