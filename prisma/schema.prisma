@@ -1,0 +1,21 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Entry {
+  date     String  @id
+  category String
+  normal   Float   @default(0)
+  extra    Float   @default(0)
+  festiva  Float   @default(0)
+  nocturna Float   @default(0)
+}
+
+model Settings {
+  id   Int   @id
+  json Json
+}

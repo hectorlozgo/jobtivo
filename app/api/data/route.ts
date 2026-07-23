@@ -1,17 +1,17 @@
-import { NextResponse } from "next/server"
+import { NextResponse } from 'next/server'
 
-import { getAppData, replaceAll } from "@/lib/repo"
+import { getAppData, replaceAll } from '@/lib/repo'
 
-export const runtime = "nodejs"
-export const dynamic = "force-dynamic"
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 // GET /api/data -> estado completo (entradas + ajustes)
 export async function GET() {
   try {
-    return NextResponse.json(getAppData())
+    return NextResponse.json(await getAppData())
   } catch (err) {
-    console.log("[v0] GET /api/data error:", (err as Error).message)
-    return NextResponse.json({ error: "No se pudo leer la base de datos" }, { status: 500 })
+    console.log('[v0] GET /api/data error:', (err as Error).message)
+    return NextResponse.json({ error: 'No se pudo leer la base de datos' }, { status: 500 })
   }
 }
 
@@ -19,10 +19,10 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const body = await request.json()
-    const data = replaceAll(body)
+    const data = await replaceAll(body)
     return NextResponse.json(data)
   } catch (err) {
-    console.log("[v0] PUT /api/data error:", (err as Error).message)
-    return NextResponse.json({ error: "Datos inválidos" }, { status: 400 })
+    console.log('[v0] PUT /api/data error:', (err as Error).message)
+    return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
   }
 }

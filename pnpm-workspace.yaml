@@ -1,6 +1,9 @@
 allowBuilds:
+  '@prisma/client': false
+  '@prisma/engines': false
   better-sqlite3: true
   core-js: true
+  prisma: false
   sharp: true
 onlyBuiltDependencies:
   - better-sqlite3
