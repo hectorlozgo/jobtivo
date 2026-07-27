@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ saved })
     }
     const entry = await upsertEntry(body)
-    if (!entry) {
+    if (!entry) { 
       return NextResponse.json({ error: 'Entrada inválida' }, { status: 400 })
     }
     return NextResponse.json(entry)

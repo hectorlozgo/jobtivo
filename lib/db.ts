@@ -2,6 +2,7 @@ import 'server-only'
 
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { Pool } from 'pg'
 
 import { DEFAULT_DATA, type DayEntry, type Settings } from '@/lib/types'
 import { sanitizeSettings } from '@/lib/validation'
@@ -159,13 +160,21 @@ export function getDb(): PrismaClient | MemoryDb {
   }
 
   try {
-    const adapter = new PrismaPg({ connectionString: databaseUrl })
-    const client: PrismaClient = globalThis.__prisma ?? new PrismaClient({ adapter })
+    if (globalThis.__prisma) {
+      return globalThis.__prisma
+    }
+
+    const pool = new Pool({ connectionString: databaseUrl })
+    const adapter = new PrismaPg(pool)
+    const client = new PrismaClient({ adapter })
+
     if (process.env.NODE_ENV !== 'production') {
       globalThis.__prisma = client
     }
+
     return client
-  } catch {
+  } catch (err) {
+    console.error('[db] Error al inicializar PrismaClient:', err)
     return createMemoryDb()
   }
 }

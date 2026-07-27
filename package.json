@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma db push && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "postinstall": "prisma generate",
@@ -24,6 +24,7 @@
     "jspdf-autotable": "5.0.8",
     "lucide-react": "1.25.0",
     "next": "16.2.6",
+    "pg": "8.22.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "recharts": "3.8.0",
@@ -37,6 +38,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "24.13.3",
+    "@types/pg": "8.20.0",
     "@types/react": "19.2.17",
     "@types/react-dom": "19",
     "dotenv": "17.4.2",
