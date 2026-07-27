@@ -51,7 +51,7 @@ type MemoryDb = {
   $transaction: <T>(fn: (tx: MemoryDb) => Promise<T>) => Promise<T>
 }
 
-function createMemoryDb(): MemoryDb {
+export function createMemoryDb(): MemoryDb {
   const state: { entries: Record<string, DayEntry>; settings: Settings } = (globalThis.__jobtimeMemoryState ??= {
     entries: {} as Record<string, DayEntry>,
     settings: sanitizeSettings(DEFAULT_DATA.settings)
