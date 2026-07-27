@@ -23,6 +23,6 @@ export async function PUT(request: Request) {
     return NextResponse.json(data)
   } catch (err) {
     console.log('[v0] PUT /api/data error:', (err as Error).message)
-    return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
+    return NextResponse.json({ error: 'No se pudieron guardar los datos' }, { status: 500 })
   }
 }
