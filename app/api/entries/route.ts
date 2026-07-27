@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     return NextResponse.json(entry)
   } catch (err) {
     console.log('[v0] POST /api/entries error:', (err as Error).message)
-    return NextResponse.json({ error: 'Entrada inválida' }, { status: 400 })
+    return NextResponse.json({ error: 'No se pudo guardar la entrada' }, { status: 500 })
   }
 }
 
@@ -45,6 +45,6 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.log('[v0] DELETE /api/entries error:', (err as Error).message)
-    return NextResponse.json({ error: 'No se pudo eliminar' }, { status: 400 })
+    return NextResponse.json({ error: 'No se pudo eliminar' }, { status: 500 })
   }
 }
