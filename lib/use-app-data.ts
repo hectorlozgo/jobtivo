@@ -1,20 +1,15 @@
-"use client"
+'use client'
 
-import useSWR from "swr"
+import useSWR from 'swr'
 
-import {
-  type AppData,
-  type DayEntry,
-  type Settings,
-  DEFAULT_DATA,
-} from "@/lib/types"
-import { sanitizeData } from "@/lib/validation"
+import { type AppData, type DayEntry, type Settings, DEFAULT_DATA } from '@/lib/types'
+import { sanitizeData } from '@/lib/validation'
 
-const KEY = "/api/data"
+const KEY = '/api/data'
 
 async function fetcher(url: string): Promise<AppData> {
   const res = await fetch(url)
-  if (!res.ok) throw new Error("No se pudieron cargar los datos")
+  if (!res.ok) throw new Error('No se pudieron cargar los datos')
   return sanitizeData(await res.json())
 }
 
@@ -25,7 +20,9 @@ function hasHours(entry: DayEntry): boolean {
 export function useAppData() {
   const { data, error, isLoading, mutate } = useSWR<AppData>(KEY, fetcher, {
     revalidateOnFocus: false,
-    fallbackData: undefined,
+    revalidateOnReconnect: false,
+    shouldRetryOnError: false,
+    fallbackData: undefined
   })
 
   const appData = data ?? DEFAULT_DATA
@@ -34,7 +31,7 @@ export function useAppData() {
   async function saveEntry(entry: DayEntry) {
     const optimistic: AppData = {
       ...appData,
-      entries: { ...appData.entries },
+      entries: { ...appData.entries }
     }
     if (hasHours(entry)) {
       optimistic.entries[entry.date] = entry
@@ -45,19 +42,19 @@ export function useAppData() {
     await mutate(
       async () => {
         if (hasHours(entry)) {
-          await fetch("/api/entries", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(entry),
+          await fetch('/api/entries', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(entry)
           })
         } else {
           await fetch(`/api/entries?date=${encodeURIComponent(entry.date)}`, {
-            method: "DELETE",
+            method: 'DELETE'
           })
         }
         return fetcher(KEY)
       },
-      { optimisticData: optimistic, revalidate: false, rollbackOnError: true },
+      { optimisticData: optimistic, revalidate: false, rollbackOnError: true }
     )
   }
 
@@ -67,10 +64,10 @@ export function useAppData() {
     delete optimistic.entries[iso]
     await mutate(
       async () => {
-        await fetch(`/api/entries?date=${encodeURIComponent(iso)}`, { method: "DELETE" })
+        await fetch(`/api/entries?date=${encodeURIComponent(iso)}`, { method: 'DELETE' })
         return fetcher(KEY)
       },
-      { optimisticData: optimistic, revalidate: false, rollbackOnError: true },
+      { optimisticData: optimistic, revalidate: false, rollbackOnError: true }
     )
   }
 
@@ -80,14 +77,14 @@ export function useAppData() {
     for (const e of entries) optimistic.entries[e.date] = e
     await mutate(
       async () => {
-        await fetch("/api/entries", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bulk: entries }),
+        await fetch('/api/entries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bulk: entries })
         })
         return fetcher(KEY)
       },
-      { optimisticData: optimistic, revalidate: false, rollbackOnError: true },
+      { optimisticData: optimistic, revalidate: false, rollbackOnError: true }
     )
   }
 
@@ -96,14 +93,14 @@ export function useAppData() {
     const optimistic: AppData = { ...appData, settings }
     await mutate(
       async () => {
-        await fetch("/api/settings", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(settings),
+        await fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(settings)
         })
         return fetcher(KEY)
       },
-      { optimisticData: optimistic, revalidate: false, rollbackOnError: true },
+      { optimisticData: optimistic, revalidate: false, rollbackOnError: true }
     )
   }
 
@@ -112,14 +109,14 @@ export function useAppData() {
     const optimistic = sanitizeData(next)
     await mutate(
       async () => {
-        await fetch("/api/data", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(next),
+        await fetch('/api/data', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(next)
         })
         return fetcher(KEY)
       },
-      { optimisticData: optimistic, revalidate: false, rollbackOnError: true },
+      { optimisticData: optimistic, revalidate: false, rollbackOnError: true }
     )
   }
 
@@ -131,6 +128,6 @@ export function useAppData() {
     removeEntry,
     saveMany,
     saveSettings,
-    replaceAll,
+    replaceAll
   }
 }
