@@ -1,29 +1,21 @@
-"use client"
+'use client'
 
-import { useMemo, useRef, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { MonthView } from "@/components/month-view"
-import { WeekView } from "@/components/week-view"
-import { DayEditor } from "@/components/day-editor"
-import { SettingsPanel } from "@/components/settings-panel"
-import { SummaryCards } from "@/components/summary-cards"
-import { YearChart } from "@/components/year-chart"
-import { summarize } from "@/lib/calc"
-import { buildExport, exportCsv, exportExcel, exportPdf } from "@/lib/export"
-import { useAppData } from "@/lib/use-app-data"
-import { sanitizeData } from "@/lib/validation"
-import {
-  type CategoryId,
-  type DayEntry,
-} from "@/lib/types"
+import { useMemo, useRef, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { MonthView } from '@/components/month-view'
+import { WeekView } from '@/components/week-view'
+import { DayEditor } from '@/components/day-editor'
+import { SettingsPanel } from '@/components/settings-panel'
+import { SummaryCards } from '@/components/summary-cards'
+import { YearChart } from '@/components/year-chart'
+import { summarize } from '@/lib/calc'
+import { buildExport, exportCsv, exportExcel, exportPdf } from '@/lib/export'
+import { useAppData } from '@/lib/use-app-data'
+import { sanitizeData } from '@/lib/validation'
+import { type CategoryId, type DayEntry } from '@/lib/types'
 import {
   addDays,
   addMonths,
@@ -35,8 +27,8 @@ import {
   startOfMonth,
   startOfWeek,
   toISO,
-  weekDays,
-} from "@/lib/dates"
+  weekDays
+} from '@/lib/dates'
 import {
   CalendarDays,
   ChevronLeft,
@@ -47,29 +39,28 @@ import {
   FileText,
   FileType,
   SlidersHorizontal,
-  Upload,
-} from "lucide-react"
+  Upload
+} from 'lucide-react'
+import { ThemeToggle } from './theme-toggle'
 
-type ViewMode = "mes" | "semana" | "dia"
-type Tab = "calendario" | "tarifas"
+type ViewMode = 'mes' | 'semana' | 'dia'
+type Tab = 'calendario' | 'tarifas'
 
 function emptyEntry(iso: string, category: CategoryId): DayEntry {
   return { date: iso, category, hours: { normal: 0, extra: 0, festiva: 0, nocturna: 0 } }
 }
 
 export function WorkTracker() {
-  const { data, isLoading, saveEntry, removeEntry, saveMany, saveSettings, replaceAll } =
-    useAppData()
-  const [tab, setTab] = useState<Tab>("calendario")
-  const [view, setView] = useState<ViewMode>("mes")
+  const { data, isLoading, saveEntry, removeEntry, saveMany, saveSettings, replaceAll } = useAppData()
+  const [tab, setTab] = useState<Tab>('calendario')
+  const [view, setView] = useState<ViewMode>('mes')
   const [cursor, setCursor] = useState<Date>(() => new Date())
   const [selectedISO, setSelectedISO] = useState<string>(() => toISO(new Date()))
   const fileRef = useRef<HTMLInputElement>(null)
 
   const settings = data.settings
   const selectedExists = Boolean(data.entries[selectedISO])
-  const selectedEntry =
-    data.entries[selectedISO] ?? emptyEntry(selectedISO, settings.defaultCategory)
+  const selectedEntry = data.entries[selectedISO] ?? emptyEntry(selectedISO, settings.defaultCategory)
 
   function updateEntry(entry: DayEntry) {
     void saveEntry(entry)
@@ -99,7 +90,7 @@ export function WorkTracker() {
   // Entradas dentro del periodo visible para el resumen.
   const periodEntries = useMemo(() => {
     const all = Object.values(data.entries)
-    if (view === "mes") {
+    if (view === 'mes') {
       const start = startOfMonth(cursor)
       const end = endOfMonth(cursor)
       return all.filter((e) => {
@@ -107,7 +98,7 @@ export function WorkTracker() {
         return d >= start && d <= end
       })
     }
-    if (view === "semana") {
+    if (view === 'semana') {
       const isos = new Set(weekDays(cursor).map(toISO))
       return all.filter((e) => isos.has(e.date))
     }
@@ -118,9 +109,9 @@ export function WorkTracker() {
   const summary = useMemo(() => summarize(periodEntries, settings), [periodEntries, settings])
 
   function navigate(dir: -1 | 1) {
-    if (view === "mes") {
+    if (view === 'mes') {
       setCursor((c) => addMonths(c, dir))
-    } else if (view === "semana") {
+    } else if (view === 'semana') {
       setCursor((c) => addDays(c, dir * 7))
     } else {
       const next = addDays(fromISO(selectedISO), dir)
@@ -135,8 +126,8 @@ export function WorkTracker() {
   }
 
   function periodLabel(): string {
-    if (view === "mes") return monthName(cursor)
-    if (view === "semana") {
+    if (view === 'mes') return monthName(cursor)
+    if (view === 'semana') {
       const start = startOfWeek(cursor)
       return formatRangeShort(start, addDays(start, 6))
     }
@@ -161,7 +152,7 @@ export function WorkTracker() {
       }
     }
     reader.readAsText(file)
-    e.target.value = ""
+    e.target.value = ''
   }
 
   if (isLoading) {
@@ -188,9 +179,7 @@ export function WorkTracker() {
         </div>
         <div className="flex items-center gap-2">
           <DropdownMenu>
-            <DropdownMenuTrigger
-              render={<Button variant="outline" size="sm" disabled={!hasData} />}
-            >
+            <DropdownMenuTrigger render={<Button variant="outline" size="sm" disabled={!hasData} />}>
               <Download className="size-4" />
               Exportar
             </DropdownMenuTrigger>
@@ -209,10 +198,11 @@ export function WorkTracker() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+          {/* <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
             <Upload className="size-4" />
             Importar
-          </Button>
+          </Button> */}
+          <ThemeToggle />
           <input
             ref={fileRef}
             type="file"
@@ -237,7 +227,7 @@ export function WorkTracker() {
         </TabsList>
       </Tabs>
 
-      {tab === "tarifas" ? (
+      {tab === 'tarifas' ? (
         <SettingsPanel settings={settings} onChange={(s) => void saveSettings(s)} />
       ) : (
         <div className="flex flex-col gap-6">
@@ -255,20 +245,10 @@ export function WorkTracker() {
                 Hoy
               </Button>
               <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => navigate(-1)}
-                  aria-label="Periodo anterior"
-                >
+                <Button variant="outline" size="icon" onClick={() => navigate(-1)} aria-label="Periodo anterior">
                   <ChevronLeft className="size-4" />
                 </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => navigate(1)}
-                  aria-label="Periodo siguiente"
-                >
+                <Button variant="outline" size="icon" onClick={() => navigate(1)} aria-label="Periodo siguiente">
                   <ChevronRight className="size-4" />
                 </Button>
               </div>
@@ -280,9 +260,9 @@ export function WorkTracker() {
           <SummaryCards summary={summary} irpf={settings.irpf} />
 
           <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-            {view !== "dia" && (
+            {view !== 'dia' && (
               <Card className="overflow-hidden p-0">
-                {view === "mes" ? (
+                {view === 'mes' ? (
                   <MonthView
                     cursor={cursor}
                     entries={data.entries}
@@ -302,7 +282,7 @@ export function WorkTracker() {
               </Card>
             )}
 
-            <Card className={view === "dia" ? "lg:col-span-2" : ""}>
+            <Card className={view === 'dia' ? 'lg:col-span-2' : ''}>
               <div className="p-5">
                 <DayEditor
                   dateISO={selectedISO}
@@ -318,7 +298,7 @@ export function WorkTracker() {
           </div>
 
           <YearChart
-            year={(view === "dia" ? fromISO(selectedISO) : cursor).getFullYear()}
+            year={(view === 'dia' ? fromISO(selectedISO) : cursor).getFullYear()}
             entries={data.entries}
             settings={settings}
           />
@@ -326,8 +306,8 @@ export function WorkTracker() {
       )}
 
       <footer className="mt-auto pt-4 text-center text-xs text-muted-foreground">
-        Los datos se guardan en una base de datos SQLite en el servidor. Exporta a CSV, Excel o PDF
-        para compartir o archivar.
+        Los datos se guardan en una base de datos SQLite en el servidor. Exporta a CSV, Excel o PDF para compartir o
+        archivar.
       </footer>
     </main>
   )
