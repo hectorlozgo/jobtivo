@@ -104,22 +104,6 @@ export function useAppData() {
     )
   }
 
-  // Reemplaza todo el estado (importación).
-  async function replaceAll(next: AppData) {
-    const optimistic = sanitizeData(next)
-    await mutate(
-      async () => {
-        await fetch('/api/data', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(next)
-        })
-        return fetcher(KEY)
-      },
-      { optimisticData: optimistic, revalidate: false, rollbackOnError: true }
-    )
-  }
-
   return {
     data: appData,
     isLoading: isLoading && !data,
@@ -127,7 +111,6 @@ export function useAppData() {
     saveEntry,
     removeEntry,
     saveMany,
-    saveSettings,
-    replaceAll
+    saveSettings
   }
 }

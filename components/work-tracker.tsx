@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -14,7 +14,6 @@ import { YearChart } from '@/components/year-chart'
 import { summarize } from '@/lib/calc'
 import { buildExport, exportCsv, exportExcel, exportPdf } from '@/lib/export'
 import { useAppData } from '@/lib/use-app-data'
-import { sanitizeData } from '@/lib/validation'
 import { type CategoryId, type DayEntry } from '@/lib/types'
 import {
   addDays,
@@ -30,6 +29,8 @@ import {
   weekDays
 } from '@/lib/dates'
 import {
+  ArrowUp,
+  BarChart3,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -38,8 +39,7 @@ import {
   FileSpreadsheet,
   FileText,
   FileType,
-  SlidersHorizontal,
-  Upload
+  SlidersHorizontal
 } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
 
@@ -51,16 +51,42 @@ function emptyEntry(iso: string, category: CategoryId): DayEntry {
 }
 
 export function WorkTracker() {
-  const { data, isLoading, saveEntry, removeEntry, saveMany, saveSettings, replaceAll } = useAppData()
+  const { data, isLoading, saveEntry, removeEntry, saveMany, saveSettings } = useAppData()
   const [tab, setTab] = useState<Tab>('calendario')
   const [view, setView] = useState<ViewMode>('mes')
   const [cursor, setCursor] = useState<Date>(() => new Date())
   const [selectedISO, setSelectedISO] = useState<string>(() => toISO(new Date()))
-  const fileRef = useRef<HTMLInputElement>(null)
+  const [showTop, setShowTop] = useState(false)
 
   const settings = data.settings
   const selectedExists = Boolean(data.entries[selectedISO])
   const selectedEntry = data.entries[selectedISO] ?? emptyEntry(selectedISO, settings.defaultCategory)
+
+  useEffect(() => {
+    function onScroll() {
+      setShowTop(window.scrollY > 320)
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function goToTab(next: Tab) {
+    setTab(next)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function goToYearChart() {
+    setTab('calendario')
+    // Espera al render si venimos de otra pestaña.
+    window.setTimeout(() => {
+      document.getElementById('resumen-anual')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
+  }
 
   function updateEntry(entry: DayEntry) {
     void saveEntry(entry)
@@ -139,22 +165,6 @@ export function WorkTracker() {
     return buildExport(periodEntries, settings, periodLabel())
   }
 
-  function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      try {
-        const parsed = sanitizeData(JSON.parse(String(reader.result)))
-        void replaceAll(parsed)
-      } catch {
-        // Archivo no válido: se ignora.
-      }
-    }
-    reader.readAsText(file)
-    e.target.value = ''
-  }
-
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -167,7 +177,7 @@ export function WorkTracker() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-10">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header id="inicio" className="flex flex-col gap-4 scroll-mt-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <Clock className="size-5" />
@@ -198,19 +208,7 @@ export function WorkTracker() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {/* <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
-            <Upload className="size-4" />
-            Importar
-          </Button> */}
           <ThemeToggle />
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/json"
-            className="sr-only"
-            onChange={handleImport}
-            aria-label="Importar datos JSON"
-          />
         </div>
       </header>
 
@@ -297,18 +295,49 @@ export function WorkTracker() {
             </Card>
           </div>
 
-          <YearChart
-            year={(view === 'dia' ? fromISO(selectedISO) : cursor).getFullYear()}
-            entries={data.entries}
-            settings={settings}
-          />
+          <div id="resumen-anual" className="scroll-mt-6">
+            <YearChart
+              year={(view === 'dia' ? fromISO(selectedISO) : cursor).getFullYear()}
+              entries={data.entries}
+              settings={settings}
+            />
+          </div>
         </div>
       )}
 
-      <footer className="mt-auto pt-4 text-center text-xs text-muted-foreground">
-        Los datos se guardan en una base de datos SQLite en el servidor. Exporta a CSV, Excel o PDF para compartir o
-        archivar.
-      </footer>
+      <nav
+        aria-label="Accesos rápidos"
+        className="mt-auto flex flex-wrap items-center justify-center gap-1 border-t border-border/60 pt-4 text-xs text-muted-foreground"
+      >
+        <Button variant="ghost" size="xs" onClick={() => goToTab('calendario')}>
+          <CalendarDays className="size-3.5" />
+          Calendario
+        </Button>
+        <Button variant="ghost" size="xs" onClick={() => goToTab('tarifas')}>
+          <SlidersHorizontal className="size-3.5" />
+          Tarifas
+        </Button>
+        <Button variant="ghost" size="xs" onClick={goToYearChart}>
+          <BarChart3 className="size-3.5" />
+          Resumen anual
+        </Button>
+        <Button variant="ghost" size="xs" onClick={scrollToTop}>
+          <ArrowUp className="size-3.5" />
+          Arriba
+        </Button>
+      </nav>
+
+      {showTop && (
+        <Button
+          variant="outline"
+          size="icon"
+          className="fixed right-4 bottom-4 z-40 shadow-sm sm:right-6 sm:bottom-6"
+          onClick={scrollToTop}
+          aria-label="Volver arriba"
+        >
+          <ArrowUp className="size-4" />
+        </Button>
+      )}
     </main>
   )
 }

@@ -161,40 +161,5 @@ export async function upsertMany(inputs: unknown): Promise<DayEntry[]> {
   })
 }
 
-export async function replaceAll(input: unknown): Promise<AppData> {
-  const obj = (input ?? {}) as Record<string, unknown>
-  const settings = sanitizeSettings(obj.settings)
-  const rawEntries = (obj.entries ?? {}) as Record<string, unknown>
-
-  const entries = Object.values(rawEntries)
-    .map((value) => sanitizeEntry(value))
-    .filter((entry): entry is DayEntry => entry !== null)
-
-  return withFallbackDb(async (db) => {
-    await db.$transaction(async (tx) => {
-      await tx.entry.deleteMany()
-      if (entries.length > 0) {
-        await tx.entry.createMany({
-          data: entries.map((entry) => ({
-            date: entry.date,
-            category: entry.category,
-            normal: entry.hours.normal,
-            extra: entry.hours.extra,
-            festiva: entry.hours.festiva,
-            nocturna: entry.hours.nocturna
-          }))
-        })
-      }
-      await tx.settings.upsert({
-        where: { id: 1 },
-        create: { id: 1, json: JSON.parse(JSON.stringify(settings)) as Prisma.InputJsonValue },
-        update: { json: JSON.parse(JSON.stringify(settings)) as Prisma.InputJsonValue }
-      })
-    })
-
-    return getAppData()
-  })
-}
-
 // Referencias usadas para asegurar imports estables en el bundle del servidor.
 export const _meta = { categories: 3, hourTypes: 4 }

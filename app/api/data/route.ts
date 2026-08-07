@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-import { getAppData, replaceAll } from '@/lib/repo'
+import { getAppData } from '@/lib/repo'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -12,17 +12,5 @@ export async function GET() {
   } catch (err) {
     console.log('[v0] GET /api/data error:', (err as Error).message)
     return NextResponse.json({ error: 'No se pudo leer la base de datos' }, { status: 500 })
-  }
-}
-
-// PUT /api/data -> reemplaza todo el estado (usado por importaciones)
-export async function PUT(request: Request) {
-  try {
-    const body = await request.json()
-    const data = await replaceAll(body)
-    return NextResponse.json(data)
-  } catch (err) {
-    console.log('[v0] PUT /api/data error:', (err as Error).message)
-    return NextResponse.json({ error: 'No se pudieron guardar los datos' }, { status: 500 })
   }
 }
