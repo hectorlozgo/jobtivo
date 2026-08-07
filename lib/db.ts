@@ -9,10 +9,13 @@ import { sanitizeSettings } from '@/lib/validation'
 
 declare global {
   var __prisma: PrismaClient | undefined
-  var __jobtimeMemoryState: { entries: Record<string, DayEntry>; settings: Settings } | undefined
+  var __jobtimeMemoryByUser:
+    | Map<string, { entries: Record<string, DayEntry>; settings: Settings }>
+    | undefined
 }
 
 type MemoryEntryRecord = {
+  userId: string
   date: string
   category: DayEntry['category']
   normal: number
@@ -22,6 +25,7 @@ type MemoryEntryRecord = {
 }
 
 type MemoryEntryInput = {
+  userId?: string | null
   date?: string | number | null
   category?: string | null
   normal?: number | string | null
@@ -31,55 +35,132 @@ type MemoryEntryInput = {
 }
 
 type MemoryDb = {
+  user: {
+    findUnique: (args: {
+      where: { email?: string; id?: string }
+    }) => Promise<{
+      id: string
+      email: string
+      name: string | null
+      passwordHash: string | null
+      image: string | null
+    } | null>
+    create: (args: {
+      data: {
+        email: string
+        name?: string | null
+        passwordHash?: string | null
+        settings?: { create: { json: unknown } }
+      }
+    }) => Promise<{
+      id: string
+      email: string
+      name: string | null
+      passwordHash: string | null
+      image: string | null
+    }>
+  }
   entry: {
-    findMany: (args?: { select?: unknown }) => Promise<MemoryEntryRecord[]>
+    findMany: (args?: {
+      where?: { userId?: string }
+      select?: unknown
+    }) => Promise<MemoryEntryRecord[]>
     upsert: (args: {
-      where: { date: string }
+      where: { userId_date: { userId: string; date: string } }
       create: Record<string, unknown>
       update: Record<string, unknown>
     }) => Promise<MemoryEntryRecord>
-    deleteMany: (args?: { where?: { date?: string } }) => Promise<{ count: number }>
-    createMany: (args: { data: MemoryEntryInput[] }) => Promise<{ count: number }>
+    deleteMany: (args?: {
+      where?: { userId?: string; date?: string }
+    }) => Promise<{ count: number }>
   }
   settings: {
-    findUnique: (args: { where: { id: number } }) => Promise<{ id: number; json: Settings } | null>
+    findUnique: (args: {
+      where: { userId: string }
+    }) => Promise<{ userId: string; json: Settings } | null>
     upsert: (args: {
-      where: { id: number }
-      create: { id: number; json: Settings }
-      update: { json: Settings }
-    }) => Promise<{ id: number; json: Settings }>
+      where: { userId: string }
+      create: { userId: string; json: unknown }
+      update: { json: unknown }
+    }) => Promise<{ userId: string; json: Settings }>
   }
   $transaction: <T>(fn: (tx: MemoryDb) => Promise<T>) => Promise<T>
 }
 
-export function createMemoryDb(): MemoryDb {
-  const state: { entries: Record<string, DayEntry>; settings: Settings } = (globalThis.__jobtimeMemoryState ??= {
-    entries: {} as Record<string, DayEntry>,
-    settings: sanitizeSettings(DEFAULT_DATA.settings)
-  })
+function getUserState(userId: string) {
+  const map = (globalThis.__jobtimeMemoryByUser ??= new Map())
+  let state = map.get(userId)
+  if (!state) {
+    state = {
+      entries: {},
+      settings: sanitizeSettings(DEFAULT_DATA.settings)
+    }
+    map.set(userId, state)
+  }
+  return state
+}
 
+const memoryUsers = new Map<
+  string,
+  { id: string; email: string; name: string | null; passwordHash: string | null; image: string | null }
+>()
+
+export function createMemoryDb(): MemoryDb {
   const db: MemoryDb = {
-    entry: {
-      async findMany() {
-        return Object.entries(state.entries).map(([date, entry]) => ({
-          date,
-          category: entry.category,
-          normal: entry.hours.normal,
-          extra: entry.hours.extra,
-          festiva: entry.hours.festiva,
-          nocturna: entry.hours.nocturna
-        }))
+    user: {
+      async findUnique(args) {
+        if (args.where.id) {
+          return memoryUsers.get(args.where.id) ?? null
+        }
+        if (args.where.email) {
+          for (const user of memoryUsers.values()) {
+            if (user.email === args.where.email) return user
+          }
+        }
+        return null
       },
-      async upsert(args: {
-        where: { date: string }
-        create: Record<string, unknown>
-        update: Record<string, unknown>
-      }) {
-        const date: string = args.where.date
+      async create(args) {
+        const id = `mem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+        const user = {
+          id,
+          email: args.data.email,
+          name: args.data.name ?? null,
+          passwordHash: args.data.passwordHash ?? null,
+          image: null
+        }
+        memoryUsers.set(id, user)
+        if (args.data.settings?.create) {
+          const state = getUserState(id)
+          state.settings = sanitizeSettings(args.data.settings.create.json)
+        }
+        return user
+      }
+    },
+    entry: {
+      async findMany(args) {
+        const userId = args?.where?.userId
+        if (!userId) return []
+        const state = getUserState(userId)
+        return Object.entries(state.entries).map(([date, entry]) => {
+          const e = entry as DayEntry
+          return {
+            userId,
+            date,
+            category: e.category,
+            normal: e.hours.normal,
+            extra: e.hours.extra,
+            festiva: e.hours.festiva,
+            nocturna: e.hours.nocturna
+          }
+        })
+      },
+      async upsert(args) {
+        const { userId, date } = args.where.userId_date
+        const state = getUserState(userId)
         const source: Record<string, unknown> = {
           ...(args.create ?? {}),
           ...(args.update ?? {})
-        } as Record<string, unknown>
+        }
 
         const entry: DayEntry = {
           date,
@@ -94,6 +175,7 @@ export function createMemoryDb(): MemoryDb {
 
         state.entries[date] = entry
         return {
+          userId,
           date,
           category: entry.category,
           normal: entry.hours.normal,
@@ -102,48 +184,30 @@ export function createMemoryDb(): MemoryDb {
           nocturna: entry.hours.nocturna
         }
       },
-      async deleteMany(args?: { where?: { date?: string } }) {
-        const whereDate: string | undefined = args?.where?.date
+      async deleteMany(args) {
+        const userId = args?.where?.userId
+        if (!userId) return { count: 0 }
+        const state = getUserState(userId)
+        const whereDate = args?.where?.date
         if (whereDate) {
           const existed = state.entries[whereDate] !== undefined
           delete state.entries[whereDate]
           return { count: existed ? 1 : 0 }
         }
-
         const count = Object.keys(state.entries).length
         Object.keys(state.entries).forEach((key) => delete state.entries[key])
         return { count }
-      },
-      async createMany(args: { data: Array<Record<string, unknown>> }) {
-        for (const item of args.data) {
-          const date: string = String(item.date ?? '')
-          if (!date) continue
-          state.entries[date] = {
-            date,
-            category: String(item.category ?? state.settings.defaultCategory) as DayEntry['category'],
-            hours: {
-              normal: Number(item.normal ?? 0),
-              extra: Number(item.extra ?? 0),
-              festiva: Number(item.festiva ?? 0),
-              nocturna: Number(item.nocturna ?? 0)
-            }
-          }
-        }
-        return { count: args.data.length }
       }
     },
     settings: {
-      async findUnique(args: { where: { id: number } }) {
-        if (args.where.id !== 1) return null
-        return { id: 1, json: state.settings }
+      async findUnique(args) {
+        const state = getUserState(args.where.userId)
+        return { userId: args.where.userId, json: state.settings }
       },
-      async upsert(args: {
-        where: { id: number }
-        create: { id: number; json: Settings }
-        update: { json: Settings }
-      }) {
-        state.settings = sanitizeSettings(args.update.json)
-        return { id: 1, json: state.settings }
+      async upsert(args) {
+        const state = getUserState(args.where.userId)
+        state.settings = sanitizeSettings(args.update.json ?? args.create.json)
+        return { userId: args.where.userId, json: state.settings }
       }
     },
     $transaction: async (fn) => fn(db)
@@ -152,29 +216,34 @@ export function createMemoryDb(): MemoryDb {
   return db
 }
 
-export function getDb(): PrismaClient | MemoryDb {
+export function getDb(): PrismaClient {
   const databaseUrl = process.env.DATABASE_URL ?? process.env.PRISMA_DATABASE_URL ?? process.env.POSTGRES_URL ?? ''
 
   if (!databaseUrl) {
-    return createMemoryDb()
+    throw new Error('DATABASE_URL no configurada')
   }
 
+  if (globalThis.__prisma) {
+    return globalThis.__prisma
+  }
+
+  const pool = new Pool({ connectionString: databaseUrl })
+  const adapter = new PrismaPg(pool)
+  const client = new PrismaClient({ adapter })
+
+  if (process.env.NODE_ENV !== 'production') {
+    globalThis.__prisma = client
+  }
+
+  return client
+}
+
+/** Cliente Prisma o memoria aislada por usuario (solo desarrollo sin DB). */
+export function getDbOrMemory(): PrismaClient | MemoryDb {
   try {
-    if (globalThis.__prisma) {
-      return globalThis.__prisma
-    }
-
-    const pool = new Pool({ connectionString: databaseUrl })
-    const adapter = new PrismaPg(pool)
-    const client = new PrismaClient({ adapter })
-
-    if (process.env.NODE_ENV !== 'production') {
-      globalThis.__prisma = client
-    }
-
-    return client
-  } catch (err) {
-    console.error('[db] Error al inicializar PrismaClient:', err)
+    return getDb()
+  } catch {
+    console.warn('[db] Sin DATABASE_URL, usando almacenamiento en memoria por usuario')
     return createMemoryDb()
   }
 }

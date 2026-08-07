@@ -8,7 +8,13 @@ import { sanitizeData } from '@/lib/validation'
 const KEY = '/api/data'
 
 async function fetcher(url: string): Promise<AppData> {
-  const res = await fetch(url)
+  const res = await fetch(url, { credentials: 'include' })
+  if (res.status === 401) {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login'
+    }
+    throw new Error('No autenticado')
+  }
   if (!res.ok) throw new Error('No se pudieron cargar los datos')
   return sanitizeData(await res.json())
 }
@@ -27,7 +33,6 @@ export function useAppData() {
 
   const appData = data ?? DEFAULT_DATA
 
-  // Crea/actualiza una entrada. Si no tiene horas, la elimina.
   async function saveEntry(entry: DayEntry) {
     const optimistic: AppData = {
       ...appData,
@@ -45,11 +50,13 @@ export function useAppData() {
           await fetch('/api/entries', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify(entry)
           })
         } else {
           await fetch(`/api/entries?date=${encodeURIComponent(entry.date)}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            credentials: 'include'
           })
         }
         return fetcher(KEY)
@@ -58,20 +65,21 @@ export function useAppData() {
     )
   }
 
-  // Elimina una entrada por fecha.
   async function removeEntry(iso: string) {
     const optimistic: AppData = { ...appData, entries: { ...appData.entries } }
     delete optimistic.entries[iso]
     await mutate(
       async () => {
-        await fetch(`/api/entries?date=${encodeURIComponent(iso)}`, { method: 'DELETE' })
+        await fetch(`/api/entries?date=${encodeURIComponent(iso)}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        })
         return fetcher(KEY)
       },
       { optimisticData: optimistic, revalidate: false, rollbackOnError: true }
     )
   }
 
-  // Inserta/actualiza varias entradas de una vez (aplicar a la semana).
   async function saveMany(entries: DayEntry[]) {
     const optimistic: AppData = { ...appData, entries: { ...appData.entries } }
     for (const e of entries) optimistic.entries[e.date] = e
@@ -80,6 +88,7 @@ export function useAppData() {
         await fetch('/api/entries', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ bulk: entries })
         })
         return fetcher(KEY)
@@ -88,7 +97,6 @@ export function useAppData() {
     )
   }
 
-  // Guarda ajustes (IRPF, tarifas, categoría predeterminada).
   async function saveSettings(settings: Settings) {
     const optimistic: AppData = { ...appData, settings }
     await mutate(
@@ -96,6 +104,7 @@ export function useAppData() {
         await fetch('/api/settings', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(settings)
         })
         return fetcher(KEY)

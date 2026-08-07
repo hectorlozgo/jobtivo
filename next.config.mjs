@@ -7,9 +7,7 @@ const nextConfig = {
   images: {
     unoptimized: true
   },
-  // better-sqlite3 es un módulo nativo: debe cargarse en el runtime de Node,
-  // no ser empaquetado por el bundler del servidor.
-  serverExternalPackages: ['better-sqlite3']
+  serverExternalPackages: ['@prisma/client', 'pg', 'bcryptjs']
 }
 
 export default nextConfig

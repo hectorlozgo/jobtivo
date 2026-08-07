@@ -42,6 +42,7 @@ import {
   SlidersHorizontal
 } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
+import { UserMenu } from './user-menu'
 
 type ViewMode = 'mes' | 'semana' | 'dia'
 type Tab = 'calendario' | 'tarifas'
@@ -208,6 +209,7 @@ export function WorkTracker() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <UserMenu />
           <ThemeToggle />
         </div>
       </header>

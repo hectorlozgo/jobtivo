@@ -1,33 +1,50 @@
 # jobtime
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+Control de horas por categoría (Mozo, Especializado, Carretillero) con tarifas, IRPF y exportación. Cada usuario tiene sus propios datos tras iniciar sesión.
 
-## Built with v0
-
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
-
-[Continue working on v0 →](https://v0.app/chat/projects/prj_qndLt65ZXdwohrONFuWiD93acKNE)
-
-## Getting Started
-
-First, run the development server:
+## Desarrollo local
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env.local
+docker compose up -d
+pnpm prisma migrate deploy
+pnpm prisma generate
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre [http://localhost:3000](http://localhost:3000). Sin sesión irás a `/login`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Usa Postgres local en `.env.local`. La `DATABASE_URL` de producción solo debe estar en el hosting (Vercel, etc.).
+
+## Deploy a producción (Vercel u otro)
+
+1. Variables de entorno en el hosting:
+
+| Variable | Obligatorio | Notas |
+|----------|-------------|--------|
+| `DATABASE_URL` | sí | PostgreSQL de producción |
+| `AUTH_SECRET` | sí | `openssl rand -base64 32` |
+| `AUTH_URL` | sí | URL pública, p. ej. `https://tu-dominio.vercel.app` |
+| `AUTH_TRUST_HOST` | recomendado | `true` en Vercel |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | opcional | OAuth Google |
+
+2. Redirect de Google: `{AUTH_URL}/api/auth/callback/google`
+
+3. El script `pnpm build` ejecuta `prisma migrate deploy` antes de `next build`, así el schema se aplica en cada deploy.
+
+4. Tras el primer deploy con auth: entra en `/register`, crea tu cuenta y empieza a registrar horas (dataset vacío por usuario).
+
+**Nota:** el paso a multi-usuario es incompatible con el schema single-tenant antiguo. Los datos previos sin `userId` no se conservan al migrar.
+
+## Auth
+
+- Registro y login con email/contraseña
+- Login con Google (si configuraste OAuth)
+- Las APIs `/api/data`, `/api/entries` y `/api/settings` exigen sesión y filtran por `userId`
 
 ## Learn More
 
-To learn more, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Auth.js](https://authjs.dev)
+- [v0 Documentation](https://v0.app/docs)
