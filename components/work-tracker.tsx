@@ -319,6 +319,7 @@ export function WorkTracker() {
                     settings={settings}
                     selectedISO={selectedISO}
                     onSelect={selectDay}
+                    onNavigate={navigate}
                   />
                 ) : (
                   <WeekView

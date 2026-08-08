@@ -59,6 +59,11 @@ export function monthName(d: Date): string {
   return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`
 }
 
+/** Solo el nombre del mes, p. ej. "Agosto". */
+export function monthOnlyName(d: Date): string {
+  return MONTHS[d.getMonth()]
+}
+
 export function weekdayShort(index: number): string {
   return WEEKDAYS[index]
 }
