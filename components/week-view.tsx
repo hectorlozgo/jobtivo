@@ -20,7 +20,7 @@ export function WeekView({ cursor, entries, settings, selectedISO, onSelect }: W
   const money = (n: number) => formatMoney(n, settings.currency, settings.locale)
 
   return (
-    <div className="flex flex-col divide-y">
+    <div className="flex flex-col divide-y divide-border/60">
       {days.map((day, i) => {
         const iso = toISO(day)
         const entry = entries[iso]
@@ -28,6 +28,7 @@ export function WeekView({ cursor, entries, settings, selectedISO, onSelect }: W
         const selected = iso === selectedISO
         const today = isToday(day)
         const category = entry ? findCategory(settings, entry.category) : null
+        const hasHours = Boolean(totals && totals.totalHours > 0)
 
         return (
           <button
@@ -35,15 +36,23 @@ export function WeekView({ cursor, entries, settings, selectedISO, onSelect }: W
             type="button"
             onClick={() => onSelect(iso)}
             aria-pressed={selected}
-            className={`flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${
-              selected ? "bg-accent/60" : ""
+            className={`flex items-center gap-3 px-3 py-3.5 text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-4 ${
+              selected
+                ? "bg-accent/70"
+                : hasHours
+                  ? "hover:bg-accent/40"
+                  : "hover:bg-muted/40"
             }`}
           >
-            <div className="flex w-12 shrink-0 flex-col items-center">
-              <span className="text-xs text-muted-foreground">{WEEKDAY_LONG[i].slice(0, 3)}</span>
+            <div className="flex w-12 shrink-0 flex-col items-center gap-0.5">
+              <span className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                {WEEKDAY_LONG[i].slice(0, 3)}
+              </span>
               <span
-                className={`flex size-8 items-center justify-center rounded-full text-sm tabular-nums ${
-                  today ? "bg-primary font-semibold text-primary-foreground" : "font-medium"
+                className={`flex size-9 items-center justify-center rounded-full text-sm tabular-nums ${
+                  today
+                    ? "bg-primary font-semibold text-primary-foreground shadow-sm"
+                    : "font-medium"
                 }`}
               >
                 {day.getDate()}
@@ -51,19 +60,19 @@ export function WeekView({ cursor, entries, settings, selectedISO, onSelect }: W
             </div>
 
             <div className="min-w-0 flex-1">
-              {totals && totals.totalHours > 0 ? (
+              {hasHours ? (
                 <>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium tabular-nums">{totals.totalHours} h</span>
+                    <span className="text-sm font-semibold tabular-nums">{totals!.totalHours} h</span>
                     {category && (
-                      <span className="rounded bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
+                      <span className="rounded-md bg-secondary px-1.5 py-0.5 text-[11px] font-medium text-secondary-foreground">
                         {category.short}
                       </span>
                     )}
                   </div>
-                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
                     {settings.hourTypes
-                      .filter((t) => (totals.hoursByType[t.id] ?? 0) > 0)
+                      .filter((t) => (totals!.hoursByType[t.id] ?? 0) > 0)
                       .map((t) => (
                         <span
                           key={t.id}
@@ -76,12 +85,12 @@ export function WeekView({ cursor, entries, settings, selectedISO, onSelect }: W
                               backgroundColor: `var(${hourColorVar(t.id, settings.hourTypes)})`,
                             }}
                           />
-                          {t.label} {totals.hoursByType[t.id]}h
+                          {t.label} {totals!.hoursByType[t.id]}h
                         </span>
                       ))}
-                    {entry!.breakApplied && totals.breakMinutesApplied > 0 && (
+                    {entry!.breakApplied && totals!.breakMinutesApplied > 0 && (
                       <span className="text-xs text-muted-foreground">
-                        −{totals.breakMinutesApplied} min descanso
+                        −{totals!.breakMinutesApplied} min descanso
                       </span>
                     )}
                   </div>
@@ -92,7 +101,7 @@ export function WeekView({ cursor, entries, settings, selectedISO, onSelect }: W
             </div>
 
             {totals && totals.gross > 0 && (
-              <span className="shrink-0 text-sm font-medium tabular-nums text-primary">
+              <span className="shrink-0 font-heading text-sm font-semibold tabular-nums text-primary">
                 {money(totals.gross)}
               </span>
             )}

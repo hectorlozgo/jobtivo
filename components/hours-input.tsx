@@ -12,7 +12,6 @@ interface HoursInputProps {
   onChange: (value: number) => void
 }
 
-// Input numérico que sólo permite valores 0..12 sin negativos.
 export function HoursInput({ id, label, value, accentVar, onChange }: HoursInputProps) {
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const raw = e.target.value
@@ -27,18 +26,17 @@ export function HoursInput({ id, label, value, accentVar, onChange }: HoursInput
   }
 
   function blockInvalidKeys(e: React.KeyboardEvent<HTMLInputElement>) {
-    // Bloquea el signo negativo y la notación exponencial.
     if (e.key === "-" || e.key === "+" || e.key === "e" || e.key === "E") {
       e.preventDefault()
     }
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1.5 rounded-xl border border-border/60 bg-muted/25 p-2.5 transition-colors focus-within:border-ring/50 focus-within:bg-background/80">
       <Label htmlFor={id} className="flex items-center gap-2 text-xs font-medium">
         <span
           aria-hidden="true"
-          className="size-2.5 rounded-full"
+          className="size-2.5 rounded-full shadow-sm"
           style={{ backgroundColor: `var(${accentVar})` }}
         />
         {label}
@@ -54,7 +52,7 @@ export function HoursInput({ id, label, value, accentVar, onChange }: HoursInput
         placeholder="0"
         onKeyDown={blockInvalidKeys}
         onChange={handleChange}
-        className="text-right tabular-nums"
+        className="h-9 border-0 bg-transparent px-1 text-right font-heading text-base font-semibold tabular-nums shadow-none focus-visible:ring-0"
       />
     </div>
   )

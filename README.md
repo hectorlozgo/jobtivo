@@ -47,4 +47,3 @@ Usa Postgres local en `.env.local`. La `DATABASE_URL` de producción solo debe e
 
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Auth.js](https://authjs.dev)
-- [v0 Documentation](https://v0.app/docs)

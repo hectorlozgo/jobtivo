@@ -1,21 +1,32 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Figtree, Geist_Mono, Outfit } from 'next/font/google'
 import { AuthProvider } from './providers/auth-provider'
 import { ThemeProvider } from './providers/theme-provider'
 import './globals.css'
 
-const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
+const outfit = Outfit({
+  variable: '--font-outfit',
+  subsets: ['latin'],
+  display: 'swap'
+})
+
+const figtree = Figtree({
+  variable: '--font-figtree',
+  subsets: ['latin'],
+  display: 'swap'
+})
+
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
-  subsets: ['latin']
+  subsets: ['latin'],
+  display: 'swap'
 })
 
 export const metadata: Metadata = {
-  title: 'Control de horas',
+  title: 'Jobtime — Control de horas',
   description:
     'Registra horas por puesto y tipo, aplica retención y calcula tu cobro por día, semana o mes.',
-  generator: 'v0.app',
   icons: {
     icon: [
       {
@@ -38,8 +49,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   colorScheme: 'light dark',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: 'white' },
-    { media: '(prefers-color-scheme: dark)', color: 'black' }
+    { media: '(prefers-color-scheme: light)', color: '#f4fbf9' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f1a22' }
   ]
 }
 
@@ -49,7 +60,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} bg-background`}>
+    <html
+      lang="es"
+      suppressHydrationWarning
+      className={`${outfit.variable} ${figtree.variable} ${geistMono.variable} bg-background`}
+    >
       <body className="font-sans antialiased">
         <ThemeProvider>
           <AuthProvider>{children}</AuthProvider>

@@ -176,10 +176,10 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <Card>
         <CardHeader>
-          <CardTitle>General</CardTitle>
+          <CardTitle className="font-heading text-lg font-semibold tracking-tight">General</CardTitle>
           <CardDescription>
             Retención sobre el bruto y puesto preseleccionado al registrar un día.
           </CardDescription>
@@ -228,14 +228,17 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Puestos</CardTitle>
+          <CardTitle className="font-heading text-lg font-semibold tracking-tight">Puestos</CardTitle>
           <CardDescription>
             Categorías o roles con tarifa propia (máx. {MAX_CATEGORIES}).
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {settings.categories.map((cat) => (
-            <div key={cat.id} className="flex flex-wrap items-end gap-2">
+            <div
+              key={cat.id}
+              className="flex flex-wrap items-end gap-2 rounded-xl border border-border/60 bg-muted/20 p-3"
+            >
               <div className="flex min-w-40 flex-1 flex-col gap-1.5">
                 <Label htmlFor={`cat-name-${cat.id}`} className="text-xs">
                   Nombre
@@ -244,6 +247,7 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
                   id={`cat-name-${cat.id}`}
                   value={cat.name}
                   onChange={(e) => updateCategory(cat.id, "name", e.target.value)}
+                  className="rounded-xl"
                 />
               </div>
               <div className="flex w-24 flex-col gap-1.5">
@@ -254,6 +258,7 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
                   id={`cat-short-${cat.id}`}
                   value={cat.short}
                   onChange={(e) => updateCategory(cat.id, "short", e.target.value)}
+                  className="rounded-xl"
                 />
               </div>
               <Button
@@ -263,7 +268,7 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
                 disabled={settings.categories.length <= 1}
                 onClick={() => removeCategory(cat.id)}
                 aria-label={`Eliminar ${cat.name}`}
-                className="text-destructive hover:text-destructive"
+                className="rounded-xl text-destructive hover:text-destructive"
               >
                 <Trash2 className="size-4" />
               </Button>
@@ -285,7 +290,7 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Tipos de hora</CardTitle>
+          <CardTitle className="font-heading text-lg font-semibold tracking-tight">Tipos de hora</CardTitle>
           <CardDescription>
             Normal, extra, festiva… o los que necesites (máx. {MAX_HOUR_TYPES}).
           </CardDescription>
@@ -342,7 +347,7 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Descanso</CardTitle>
+          <CardTitle className="font-heading text-lg font-semibold tracking-tight">Descanso</CardTitle>
           <CardDescription>
             Minutos que se restan de la jornada bruta cuando marcas el descanso en un día.
           </CardDescription>
@@ -382,15 +387,18 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Tarifas por hora</CardTitle>
+          <CardTitle className="font-heading text-lg font-semibold tracking-tight">Tarifas por hora</CardTitle>
           <CardDescription>
             Precio de cada tipo de hora, independiente por puesto.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
           {settings.categories.map((cat) => (
-            <div key={cat.id} className="flex flex-col gap-3">
-              <h4 className="text-sm font-semibold">
+            <div
+              key={cat.id}
+              className="flex flex-col gap-3 rounded-xl border border-border/60 bg-muted/15 p-4"
+            >
+              <h4 className="font-heading text-sm font-semibold tracking-tight">
                 {cat.name} <span className="text-muted-foreground">({cat.short})</span>
               </h4>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

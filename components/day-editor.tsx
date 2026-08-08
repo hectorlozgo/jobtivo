@@ -42,13 +42,8 @@ export function DayEditor({
   onClear,
   onFillWeekdays,
 }: DayEditorProps) {
-  // El borrador vive en estado local: los cambios NO se envían a la API hasta
-  // que el usuario pulsa "Guardar"/"Actualizar". Esto evita una petición por
-  // cada pulsación de tecla.
   const [draft, setDraft] = useState<DayEntry>(entry)
 
-  // Firma estable de la entrada almacenada para sincronizar el borrador solo
-  // cuando cambia el día o los datos guardados (no en cada render).
   const entrySignature = JSON.stringify(entry)
   useEffect(() => {
     setDraft(JSON.parse(entrySignature) as DayEntry)
@@ -58,9 +53,6 @@ export function DayEditor({
   const overLimit = totals.grossHours > MAX_TOTAL_HOURS_PER_DAY
   const hasHours = totals.grossHours > 0
   const dirty = JSON.stringify(draft) !== entrySignature
-
-  // Se puede guardar si hay cambios sin persistir y hay algo que guardar
-  // (un día nuevo sin horas no genera petición).
   const canSave = dirty && (exists || hasHours)
 
   function setCategory(next: string) {
@@ -88,8 +80,13 @@ export function DayEditor({
 
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <h3 className="text-base font-semibold capitalize text-pretty">{dateLabel}</h3>
+      <div className="flex flex-col gap-1">
+        <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+          Editor del día
+        </p>
+        <h3 className="font-heading text-lg font-semibold capitalize tracking-tight text-pretty">
+          {dateLabel}
+        </h3>
         <p className="text-sm text-muted-foreground">
           Introduce la jornada bruta; el descanso se resta automáticamente si lo marcas.
         </p>
@@ -103,7 +100,7 @@ export function DayEditor({
             if (v) setCategory(v)
           }}
         >
-          <SelectTrigger id="category" className="w-full">
+          <SelectTrigger id="category" className="w-full rounded-xl">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -131,7 +128,7 @@ export function DayEditor({
 
       <label
         htmlFor="break-applied"
-        className="flex cursor-pointer items-start gap-3 rounded-lg border bg-muted/30 px-4 py-3"
+        className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/70 bg-muted/35 px-4 py-3.5 transition-colors hover:bg-muted/50"
       >
         <input
           id="break-applied"
@@ -156,22 +153,24 @@ export function DayEditor({
       </label>
 
       {overLimit && (
-        <p role="alert" className="text-sm font-medium text-destructive">
+        <p role="alert" className="rounded-xl bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
           El total de {totals.grossHours} h supera el máximo recomendado de {MAX_TOTAL_HOURS_PER_DAY} h
           diarias.
         </p>
       )}
 
-      <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-4 py-3">
+      <div className="flex items-center justify-between rounded-xl border border-border/70 bg-gradient-to-br from-primary/8 via-transparent to-transparent px-4 py-3.5">
         <div>
           <p className="text-xs text-muted-foreground">
             {totals.breakMinutesApplied > 0 ? "Horas cobrables" : "Total del día"}
           </p>
-          <p className="font-semibold tabular-nums">{formatDurationHours(totals.totalHours)}</p>
+          <p className="font-heading text-lg font-semibold tabular-nums">
+            {formatDurationHours(totals.totalHours)}
+          </p>
         </div>
         <div className="text-right">
           <p className="text-xs text-muted-foreground">Importe bruto</p>
-          <p className="font-semibold tabular-nums text-primary">
+          <p className="font-heading text-lg font-semibold tabular-nums text-primary">
             {formatMoney(totals.gross, settings.currency, settings.locale)}
           </p>
         </div>
@@ -181,7 +180,7 @@ export function DayEditor({
         type="button"
         onClick={handleSave}
         disabled={!canSave}
-        className="justify-center"
+        className="h-10 justify-center rounded-xl"
         aria-live="polite"
       >
         {!dirty && exists ? (
@@ -210,7 +209,7 @@ export function DayEditor({
           size="sm"
           disabled={!hasHours}
           onClick={() => onFillWeekdays(draft)}
-          className="justify-center"
+          className="h-9 justify-center rounded-xl"
         >
           <CalendarRange className="size-4" />
           Aplicar a toda la semana (L–V)
@@ -223,7 +222,7 @@ export function DayEditor({
         size="sm"
         onClick={onClear}
         disabled={!exists}
-        className="self-start text-destructive hover:text-destructive"
+        className="self-start rounded-lg text-destructive hover:text-destructive"
       >
         <Trash2 className="size-4" />
         Vaciar día

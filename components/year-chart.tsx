@@ -3,13 +3,6 @@
 import { useMemo } from "react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -66,33 +59,43 @@ export function YearChart({ year, entries, settings }: YearChartProps) {
   }, [entries, settings, year])
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="surface-panel overflow-hidden">
+      <div className="flex flex-col gap-4 border-b border-border/60 px-5 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-6">
+        <div>
+          <h3 className="font-heading text-lg font-semibold tracking-tight">
+            Resumen anual {year}
+          </h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Importe bruto y neto acumulado por mes.
+          </p>
+        </div>
+        <div className="flex gap-5 text-right">
           <div>
-            <CardTitle>Resumen anual {year}</CardTitle>
-            <CardDescription>Importe bruto y neto acumulado por mes.</CardDescription>
+            <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+              Horas
+            </p>
+            <p className="font-heading font-semibold tabular-nums">{totalHours} h</p>
           </div>
-          <div className="flex gap-4 text-right">
-            <div>
-              <p className="text-xs text-muted-foreground">Horas</p>
-              <p className="font-semibold tabular-nums">{totalHours} h</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Bruto</p>
-              <p className="font-semibold tabular-nums">{money(totalGross)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Neto</p>
-              <p className="font-semibold tabular-nums text-primary">{money(totalNet)}</p>
-            </div>
+          <div>
+            <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+              Bruto
+            </p>
+            <p className="font-heading font-semibold tabular-nums">{money(totalGross)}</p>
+          </div>
+          <div>
+            <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+              Neto
+            </p>
+            <p className="font-heading font-semibold tabular-nums text-primary">
+              {money(totalNet)}
+            </p>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
+      </div>
+      <div className="px-3 py-4 sm:px-5 sm:py-5">
         <ChartContainer config={chartConfig} className="h-64 w-full">
           <BarChart accessibilityLayer data={data} margin={{ left: 4, right: 4, top: 8 }}>
-            <CartesianGrid vertical={false} />
+            <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/50" />
             <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
             <YAxis
               tickLine={false}
@@ -112,11 +115,11 @@ export function YearChart({ year, entries, settings }: YearChartProps) {
                 />
               }
             />
-            <Bar dataKey="bruto" fill="var(--color-bruto)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="neto" fill="var(--color-neto)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="bruto" fill="var(--color-bruto)" radius={[6, 6, 2, 2]} />
+            <Bar dataKey="neto" fill="var(--color-neto)" radius={[6, 6, 2, 2]} />
           </BarChart>
         </ChartContainer>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

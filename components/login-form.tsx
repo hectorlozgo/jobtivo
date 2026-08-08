@@ -6,7 +6,6 @@ import { signIn } from 'next-auth/react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Clock } from 'lucide-react'
@@ -65,20 +64,21 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="gap-3">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+    <div className="animate-fade-up surface-panel w-full max-w-md overflow-hidden">
+      <div className="border-b border-border/60 px-6 py-6">
+        <div className="flex items-center gap-3.5">
+          <span className="brand-mark flex size-11 items-center justify-center rounded-2xl text-primary-foreground">
             <Clock className="size-5" />
           </span>
           <div>
-            <CardTitle className="text-lg">Iniciar sesión</CardTitle>
-            <CardDescription>Accede a tu control de horas</CardDescription>
+            <p className="font-heading text-xl font-semibold tracking-tight">Jobtime</p>
+            <p className="text-sm text-muted-foreground">Accede a tu control de horas</p>
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <form onSubmit={onSubmit} className="flex flex-col gap-3">
+      </div>
+
+      <div className="flex flex-col gap-5 px-6 py-6">
+        <form onSubmit={onSubmit} className="flex flex-col gap-3.5">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -88,6 +88,7 @@ export function LoginForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              className="h-10 rounded-xl"
             />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -99,23 +100,26 @@ export function LoginForm() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              className="h-10 rounded-xl"
             />
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" disabled={loading} className="w-full">
+          {error && (
+            <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
+          )}
+          <Button type="submit" disabled={loading} className="mt-1 h-10 w-full rounded-xl">
             {loading ? 'Entrando…' : 'Entrar'}
           </Button>
         </form>
 
         <div className="relative text-center text-xs text-muted-foreground">
-          <span className="bg-card relative z-10 px-2">o</span>
-          <div className="absolute inset-x-0 top-1/2 border-t border-border" />
+          <span className="relative z-10 bg-[var(--card)] px-2">o</span>
+          <div className="absolute inset-x-0 top-1/2 border-t border-border/70" />
         </div>
 
         <Button
           type="button"
           variant="outline"
-          className="w-full"
+          className="h-10 w-full rounded-xl"
           onClick={() => signIn('google', { callbackUrl: '/' })}
         >
           <GoogleIcon className="size-4" />
@@ -124,11 +128,11 @@ export function LoginForm() {
 
         <p className="text-center text-sm text-muted-foreground">
           ¿No tienes cuenta?{' '}
-          <Link href="/register" className="text-foreground underline-offset-4 hover:underline">
+          <Link href="/register" className="font-medium text-foreground underline-offset-4 hover:underline">
             Regístrate
           </Link>
         </p>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

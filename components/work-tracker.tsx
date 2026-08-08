@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { MonthView } from '@/components/month-view'
@@ -88,7 +87,6 @@ export function WorkTracker() {
 
   function goToYearChart() {
     setTab('calendario')
-    // Espera al render si venimos de otra pestaña.
     window.setTimeout(() => {
       document.getElementById('resumen-anual')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 50)
@@ -102,7 +100,6 @@ export function WorkTracker() {
     void removeEntry(iso)
   }
 
-  // Copia la categoría y horas del día indicado a lunes-viernes de su semana.
   function fillWeekdays(template: DayEntry) {
     if (!Object.values(template.hours).some((h) => h > 0)) return
     const start = startOfWeek(fromISO(template.date))
@@ -124,7 +121,6 @@ export function WorkTracker() {
     setCursor(fromISO(iso))
   }
 
-  // Entradas dentro del periodo visible para el resumen.
   const periodEntries = useMemo(() => {
     const all = Object.values(data.entries)
     if (view === 'mes') {
@@ -171,15 +167,25 @@ export function WorkTracker() {
     return formatLongDate(fromISO(selectedISO))
   }
 
-  // Construye el paquete de exportación con las entradas del periodo visible.
   function currentBundle() {
     return buildExport(periodEntries, settings, periodLabel())
   }
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-sm text-muted-foreground">Cargando datos…</p>
+      <div className="flex min-h-dvh items-center justify-center px-4">
+        <div className="animate-fade-up flex flex-col items-center gap-4">
+          <span className="brand-mark flex size-12 items-center justify-center rounded-2xl text-primary-foreground">
+            <Clock className="size-5" />
+          </span>
+          <div className="flex flex-col items-center gap-2">
+            <p className="font-heading text-base font-semibold">Jobtime</p>
+            <div className="h-1 w-28 overflow-hidden rounded-full bg-muted">
+              <div className="h-full w-1/2 animate-pulse rounded-full bg-primary/70" />
+            </div>
+            <p className="text-sm text-muted-foreground">Cargando tus horas…</p>
+          </div>
+        </div>
       </div>
     )
   }
@@ -187,93 +193,125 @@ export function WorkTracker() {
   const hasData = periodEntries.some((e) => Object.values(e.hours).some((h) => h > 0))
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-10">
-      <header id="inicio" className="flex flex-col gap-4 scroll-mt-6 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Clock className="size-5" />
-          </span>
-          <div>
-            <h1 className="text-xl font-semibold leading-tight text-balance">Control de horas</h1>
-            <p className="text-sm text-muted-foreground">
-              {settings.categories.map((c) => c.short || c.name).join(' · ') || 'Puestos y tarifas'}
-            </p>
+    <main className="relative mx-auto flex min-h-dvh max-w-6xl flex-col gap-7 px-4 py-6 sm:px-6 lg:gap-8 lg:py-10">
+      <header
+        id="inicio"
+        className="animate-fade-up sticky top-3 z-30 scroll-mt-6 rounded-2xl border border-border/50 bg-card/70 px-4 py-3 shadow-sm backdrop-blur-xl sm:px-5"
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3.5">
+            <span className="brand-mark flex size-11 items-center justify-center rounded-2xl text-primary-foreground">
+              <Clock className="size-5" />
+            </span>
+            <div>
+              <h1 className="font-heading text-xl font-semibold tracking-tight text-balance sm:text-2xl">
+                Jobtime
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {settings.categories.map((c) => c.short || c.name).join(' · ') || 'Puestos y tarifas'}
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="outline" size="sm" disabled={!hasData} />}>
-              <Download className="size-4" />
-              Exportar
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => exportCsv(currentBundle())}>
-                <FileText className="size-4" />
-                CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void exportExcel(currentBundle())}>
-                <FileSpreadsheet className="size-4" />
-                Excel (.xlsx)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void exportPdf(currentBundle())}>
-                <FileType className="size-4" />
-                PDF
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <UserMenu />
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<Button variant="outline" size="sm" disabled={!hasData} />}>
+                <Download className="size-4" />
+                Exportar
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => exportCsv(currentBundle())}>
+                  <FileText className="size-4" />
+                  CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => void exportExcel(currentBundle())}>
+                  <FileSpreadsheet className="size-4" />
+                  Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => void exportPdf(currentBundle())}>
+                  <FileType className="size-4" />
+                  PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <UserMenu />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-        <TabsList>
-          <TabsTrigger value="calendario">
-            <CalendarDays className="size-4" />
-            Calendario
-          </TabsTrigger>
-          <TabsTrigger value="tarifas">
-            <SlidersHorizontal className="size-4" />
-            Tarifas y retención
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="animate-fade-up stagger-1">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
+          <TabsList className="h-10 rounded-xl bg-muted/80 p-1">
+            <TabsTrigger value="calendario" className="rounded-lg px-3">
+              <CalendarDays className="size-4" />
+              Calendario
+            </TabsTrigger>
+            <TabsTrigger value="tarifas" className="rounded-lg px-3">
+              <SlidersHorizontal className="size-4" />
+              Tarifas y retención
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
 
       {tab === 'tarifas' ? (
-        <SettingsPanel settings={settings} onChange={(s) => void saveSettings(s)} />
+        <div className="animate-fade-up">
+          <SettingsPanel settings={settings} onChange={(s) => void saveSettings(s)} />
+        </div>
       ) : (
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <Tabs value={view} onValueChange={(v) => setView(v as ViewMode)}>
-              <TabsList>
-                <TabsTrigger value="mes">Mes</TabsTrigger>
-                <TabsTrigger value="semana">Semana</TabsTrigger>
-                <TabsTrigger value="dia">Día</TabsTrigger>
-              </TabsList>
-            </Tabs>
+        <div className="animate-fade-up stagger-2 flex flex-col gap-6 lg:gap-7">
+          <div className="surface-panel flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
+              <Tabs value={view} onValueChange={(v) => setView(v as ViewMode)}>
+                <TabsList className="h-9 rounded-xl bg-muted/90 p-1">
+                  <TabsTrigger value="mes" className="rounded-lg px-3">
+                    Mes
+                  </TabsTrigger>
+                  <TabsTrigger value="semana" className="rounded-lg px-3">
+                    Semana
+                  </TabsTrigger>
+                  <TabsTrigger value="dia" className="rounded-lg px-3">
+                    Día
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <p className="font-heading text-lg font-semibold capitalize tracking-tight text-pretty sm:text-xl">
+                {periodLabel()}
+              </p>
+            </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={goToday}>
+              <Button variant="outline" size="sm" onClick={goToday} className="rounded-xl">
                 Hoy
               </Button>
-              <div className="flex items-center gap-1">
-                <Button variant="outline" size="icon" onClick={() => navigate(-1)} aria-label="Periodo anterior">
+              <div className="flex items-center rounded-xl border border-border/70 bg-background/60 p-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => navigate(-1)}
+                  aria-label="Periodo anterior"
+                  className="rounded-lg"
+                >
                   <ChevronLeft className="size-4" />
                 </Button>
-                <Button variant="outline" size="icon" onClick={() => navigate(1)} aria-label="Periodo siguiente">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => navigate(1)}
+                  aria-label="Periodo siguiente"
+                  className="rounded-lg"
+                >
                   <ChevronRight className="size-4" />
                 </Button>
               </div>
             </div>
           </div>
 
-          <p className="text-base font-medium capitalize text-pretty">{periodLabel()}</p>
-
           <SummaryCards summary={summary} settings={settings} />
 
-          <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+          <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
             {view !== 'dia' && (
-              <Card className="overflow-hidden p-0">
+              <div className="surface-panel overflow-hidden">
                 {view === 'mes' ? (
                   <MonthView
                     cursor={cursor}
@@ -291,22 +329,20 @@ export function WorkTracker() {
                     onSelect={selectDay}
                   />
                 )}
-              </Card>
+              </div>
             )}
 
-            <Card className={view === 'dia' ? 'lg:col-span-2' : ''}>
-              <div className="p-5">
-                <DayEditor
-                  dateISO={selectedISO}
-                  entry={selectedEntry}
-                  exists={selectedExists}
-                  settings={settings}
-                  onSave={updateEntry}
-                  onClear={() => clearDay(selectedISO)}
-                  onFillWeekdays={fillWeekdays}
-                />
-              </div>
-            </Card>
+            <div className={`surface-panel p-5 sm:p-6 ${view === 'dia' ? 'lg:col-span-2' : ''}`}>
+              <DayEditor
+                dateISO={selectedISO}
+                entry={selectedEntry}
+                exists={selectedExists}
+                settings={settings}
+                onSave={updateEntry}
+                onClear={() => clearDay(selectedISO)}
+                onFillWeekdays={fillWeekdays}
+              />
+            </div>
           </div>
 
           <div id="resumen-anual" className="scroll-mt-6">
@@ -321,21 +357,21 @@ export function WorkTracker() {
 
       <nav
         aria-label="Accesos rápidos"
-        className="mt-auto flex flex-wrap items-center justify-center gap-1 border-t border-border/60 pt-4 text-xs text-muted-foreground"
+        className="mt-auto flex flex-wrap items-center justify-center gap-1 border-t border-border/50 pt-5 text-xs text-muted-foreground"
       >
-        <Button variant="ghost" size="xs" onClick={() => goToTab('calendario')}>
+        <Button variant="ghost" size="xs" onClick={() => goToTab('calendario')} className="rounded-lg">
           <CalendarDays className="size-3.5" />
           Calendario
         </Button>
-        <Button variant="ghost" size="xs" onClick={() => goToTab('tarifas')}>
+        <Button variant="ghost" size="xs" onClick={() => goToTab('tarifas')} className="rounded-lg">
           <SlidersHorizontal className="size-3.5" />
           Tarifas
         </Button>
-        <Button variant="ghost" size="xs" onClick={goToYearChart}>
+        <Button variant="ghost" size="xs" onClick={goToYearChart} className="rounded-lg">
           <BarChart3 className="size-3.5" />
           Resumen anual
         </Button>
-        <Button variant="ghost" size="xs" onClick={scrollToTop}>
+        <Button variant="ghost" size="xs" onClick={scrollToTop} className="rounded-lg">
           <ArrowUp className="size-3.5" />
           Arriba
         </Button>
@@ -345,7 +381,7 @@ export function WorkTracker() {
         <Button
           variant="outline"
           size="icon"
-          className="fixed right-4 bottom-4 z-40 shadow-sm sm:right-6 sm:bottom-6"
+          className="animate-fade-in fixed right-4 bottom-4 z-40 rounded-2xl border-border/60 bg-card/90 shadow-lg backdrop-blur-md sm:right-6 sm:bottom-6"
           onClick={scrollToTop}
           aria-label="Volver arriba"
         >

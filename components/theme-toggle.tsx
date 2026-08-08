@@ -46,9 +46,10 @@ export function ThemeToggle() {
   return (
     <Button
       variant="outline"
-      size="sm"
+      size="icon-sm"
       onClick={toggleTheme}
       aria-label={theme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+      className="rounded-xl"
     >
       {theme === 'dark' ? <SunMedium className="size-4" /> : <Moon className="size-4" />}
       {theme === 'dark' ? <span className="sr-only">Claro</span> : <span className="sr-only">Oscuro</span>}
