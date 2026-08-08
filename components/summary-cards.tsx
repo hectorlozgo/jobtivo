@@ -1,42 +1,49 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { type PeriodSummary, formatEur } from "@/lib/calc"
-import { HOUR_COLOR_VAR } from "@/lib/hour-colors"
-import { HOUR_TYPES } from "@/lib/types"
+import { type PeriodSummary, formatMoney } from "@/lib/calc"
+import { hourColorVar } from "@/lib/hour-colors"
+import { type Settings } from "@/lib/types"
 
 interface SummaryCardsProps {
   summary: PeriodSummary
-  irpf: number
+  settings: Settings
 }
 
-export function SummaryCards({ summary, irpf }: SummaryCardsProps) {
+export function SummaryCards({ summary, settings }: SummaryCardsProps) {
+  const money = (n: number) => formatMoney(n, settings.currency, settings.locale)
+  const taxLabel = settings.taxLabel || "Retención"
+
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Horas totales" value={`${summary.totalHours} h`} />
         <Stat label="Días trabajados" value={String(summary.days)} />
-        <Stat label="Bruto" value={formatEur(summary.gross)} />
-        <Stat label="Neto" value={formatEur(summary.net)} highlight />
+        <Stat label="Bruto" value={money(summary.gross)} />
+        <Stat label="Neto" value={money(summary.net)} highlight />
       </div>
 
       <Card>
         <CardContent className="flex flex-col gap-4">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Retención IRPF ({irpf}%)</span>
+            <span className="text-muted-foreground">
+              {taxLabel} ({settings.taxPercent}%)
+            </span>
             <span className="font-medium tabular-nums text-destructive">
-              − {formatEur(summary.irpfAmount)}
+              − {money(summary.taxAmount)}
             </span>
           </div>
           <div className="h-px bg-border" />
           <div className="flex flex-col gap-2.5">
             <p className="text-xs font-medium text-muted-foreground">Horas por tipo</p>
-            {HOUR_TYPES.map((t) => (
+            {settings.hourTypes.map((t) => (
               <div key={t.id} className="flex items-center gap-2 text-sm">
                 <span
                   aria-hidden="true"
                   className="size-2.5 rounded-full"
-                  style={{ backgroundColor: `var(${HOUR_COLOR_VAR[t.id]})` }}
+                  style={{
+                    backgroundColor: `var(${hourColorVar(t.id, settings.hourTypes)})`,
+                  }}
                 />
                 <span className="flex-1">{t.label}</span>
                 <span className="font-medium tabular-nums">

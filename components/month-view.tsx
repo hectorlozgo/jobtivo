@@ -1,8 +1,8 @@
 "use client"
 
-import { type DayEntry, type Settings, HOUR_TYPES } from "@/lib/types"
-import { entryTotals, formatEur } from "@/lib/calc"
-import { HOUR_COLOR_VAR } from "@/lib/hour-colors"
+import { type DayEntry, type Settings } from "@/lib/types"
+import { entryTotals, formatMoney } from "@/lib/calc"
+import { hourColorVar } from "@/lib/hour-colors"
 import {
   isToday,
   monthGridDays,
@@ -21,6 +21,7 @@ interface MonthViewProps {
 export function MonthView({ cursor, entries, settings, selectedISO, onSelect }: MonthViewProps) {
   const days = monthGridDays(cursor)
   const currentMonth = cursor.getMonth()
+  const money = (n: number) => formatMoney(n, settings.currency, settings.locale)
 
   return (
     <div className="flex flex-col">
@@ -40,7 +41,9 @@ export function MonthView({ cursor, entries, settings, selectedISO, onSelect }: 
           const selected = iso === selectedISO
           const today = isToday(day)
           const activeTypes = entry
-            ? HOUR_TYPES.filter((t) => (totals?.hoursByType[t.id] ?? entry.hours[t.id] ?? 0) > 0)
+            ? settings.hourTypes.filter(
+                (t) => (totals?.hoursByType[t.id] ?? entry.hours[t.id] ?? 0) > 0,
+              )
             : []
 
           return (
@@ -69,7 +72,9 @@ export function MonthView({ cursor, entries, settings, selectedISO, onSelect }: 
                         key={t.id}
                         aria-hidden="true"
                         className="size-1.5 rounded-full"
-                        style={{ backgroundColor: `var(${HOUR_COLOR_VAR[t.id]})` }}
+                        style={{
+                          backgroundColor: `var(${hourColorVar(t.id, settings.hourTypes)})`,
+                        }}
                       />
                     ))}
                   </span>
@@ -77,7 +82,7 @@ export function MonthView({ cursor, entries, settings, selectedISO, onSelect }: 
                     {totals.totalHours} h
                   </span>
                   <span className="hidden text-[11px] tabular-nums leading-none text-primary sm:block">
-                    {formatEur(totals.gross)}
+                    {money(totals.gross)}
                   </span>
                 </span>
               )}

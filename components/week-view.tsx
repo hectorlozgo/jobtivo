@@ -1,8 +1,8 @@
 "use client"
 
-import { type DayEntry, type Settings, CATEGORIES, HOUR_TYPES } from "@/lib/types"
-import { entryTotals, formatEur } from "@/lib/calc"
-import { HOUR_COLOR_VAR } from "@/lib/hour-colors"
+import { type DayEntry, type Settings, findCategory } from "@/lib/types"
+import { entryTotals, formatMoney } from "@/lib/calc"
+import { hourColorVar } from "@/lib/hour-colors"
 import { isToday, toISO, weekDays } from "@/lib/dates"
 
 interface WeekViewProps {
@@ -17,6 +17,7 @@ const WEEKDAY_LONG = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sá
 
 export function WeekView({ cursor, entries, settings, selectedISO, onSelect }: WeekViewProps) {
   const days = weekDays(cursor)
+  const money = (n: number) => formatMoney(n, settings.currency, settings.locale)
 
   return (
     <div className="flex flex-col divide-y">
@@ -26,7 +27,7 @@ export function WeekView({ cursor, entries, settings, selectedISO, onSelect }: W
         const totals = entry ? entryTotals(entry, settings) : null
         const selected = iso === selectedISO
         const today = isToday(day)
-        const category = entry ? CATEGORIES.find((c) => c.id === entry.category) : null
+        const category = entry ? findCategory(settings, entry.category) : null
 
         return (
           <button
@@ -61,16 +62,23 @@ export function WeekView({ cursor, entries, settings, selectedISO, onSelect }: W
                     )}
                   </div>
                   <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-                    {HOUR_TYPES.filter((t) => (totals.hoursByType[t.id] ?? 0) > 0).map((t) => (
-                      <span key={t.id} className="flex items-center gap-1 text-xs text-muted-foreground">
+                    {settings.hourTypes
+                      .filter((t) => (totals.hoursByType[t.id] ?? 0) > 0)
+                      .map((t) => (
                         <span
-                          aria-hidden="true"
-                          className="size-1.5 rounded-full"
-                          style={{ backgroundColor: `var(${HOUR_COLOR_VAR[t.id]})` }}
-                        />
-                        {t.label} {totals.hoursByType[t.id]}h
-                      </span>
-                    ))}
+                          key={t.id}
+                          className="flex items-center gap-1 text-xs text-muted-foreground"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="size-1.5 rounded-full"
+                            style={{
+                              backgroundColor: `var(${hourColorVar(t.id, settings.hourTypes)})`,
+                            }}
+                          />
+                          {t.label} {totals.hoursByType[t.id]}h
+                        </span>
+                      ))}
                     {entry!.breakApplied && totals.breakMinutesApplied > 0 && (
                       <span className="text-xs text-muted-foreground">
                         −{totals.breakMinutesApplied} min descanso
@@ -85,7 +93,7 @@ export function WeekView({ cursor, entries, settings, selectedISO, onSelect }: W
 
             {totals && totals.gross > 0 && (
               <span className="shrink-0 text-sm font-medium tabular-nums text-primary">
-                {formatEur(totals.gross)}
+                {money(totals.gross)}
               </span>
             )}
           </button>

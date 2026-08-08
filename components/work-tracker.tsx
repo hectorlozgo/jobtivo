@@ -14,7 +14,7 @@ import { YearChart } from '@/components/year-chart'
 import { summarize } from '@/lib/calc'
 import { buildExport, exportCsv, exportExcel, exportPdf } from '@/lib/export'
 import { useAppData } from '@/lib/use-app-data'
-import { type CategoryId, type DayEntry } from '@/lib/types'
+import { type DayEntry, type Settings, emptyHours } from '@/lib/types'
 import {
   addDays,
   addMonths,
@@ -47,12 +47,12 @@ import { UserMenu } from './user-menu'
 type ViewMode = 'mes' | 'semana' | 'dia'
 type Tab = 'calendario' | 'tarifas'
 
-function emptyEntry(iso: string, category: CategoryId, breakApplied: boolean): DayEntry {
+function emptyEntry(iso: string, settings: Settings): DayEntry {
   return {
     date: iso,
-    category,
-    hours: { normal: 0, extra: 0, festiva: 0, nocturna: 0 },
-    breakApplied,
+    category: settings.defaultCategory,
+    hours: emptyHours(settings.hourTypes),
+    breakApplied: settings.applyBreakByDefault,
   }
 }
 
@@ -66,9 +66,7 @@ export function WorkTracker() {
 
   const settings = data.settings
   const selectedExists = Boolean(data.entries[selectedISO])
-  const selectedEntry =
-    data.entries[selectedISO] ??
-    emptyEntry(selectedISO, settings.defaultCategory, settings.applyBreakByDefault)
+  const selectedEntry = data.entries[selectedISO] ?? emptyEntry(selectedISO, settings)
 
   useEffect(() => {
     function onScroll() {
@@ -197,7 +195,9 @@ export function WorkTracker() {
           </span>
           <div>
             <h1 className="text-xl font-semibold leading-tight text-balance">Control de horas</h1>
-            <p className="text-sm text-muted-foreground">Mozo · Especializado · Carretillero</p>
+            <p className="text-sm text-muted-foreground">
+              {settings.categories.map((c) => c.short || c.name).join(' · ') || 'Puestos y tarifas'}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -234,7 +234,7 @@ export function WorkTracker() {
           </TabsTrigger>
           <TabsTrigger value="tarifas">
             <SlidersHorizontal className="size-4" />
-            Tarifas e IRPF
+            Tarifas y retención
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -269,7 +269,7 @@ export function WorkTracker() {
 
           <p className="text-base font-medium capitalize text-pretty">{periodLabel()}</p>
 
-          <SummaryCards summary={summary} irpf={settings.irpf} />
+          <SummaryCards summary={summary} settings={settings} />
 
           <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
             {view !== 'dia' && (

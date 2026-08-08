@@ -3,7 +3,6 @@ import { PrismaAdapter } from '@auth/prisma-adapter'
 import Credentials from 'next-auth/providers/credentials'
 import Google from 'next-auth/providers/google'
 import bcrypt from 'bcryptjs'
-import { Prisma } from '@prisma/client'
 
 import { authConfig } from '@/auth.config'
 import { getDb, getDbOrMemory } from '@/lib/db'
@@ -94,7 +93,6 @@ export async function createUserWithPassword(input: {
 
   const passwordHash = await bcrypt.hash(password, 12)
   const settings = sanitizeSettings(DEFAULT_DATA.settings)
-  const jsonSettings = JSON.parse(JSON.stringify(settings)) as Prisma.InputJsonValue
 
   const user = await db.user.create({
     data: {
@@ -102,7 +100,7 @@ export async function createUserWithPassword(input: {
       name,
       passwordHash,
       settings: {
-        create: { json: jsonSettings as object }
+        create: { json: settings as object }
       }
     }
   })

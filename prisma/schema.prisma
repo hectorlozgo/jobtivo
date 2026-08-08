@@ -59,10 +59,8 @@ model Entry {
   userId       String
   date         String
   category     String
-  normal       Float   @default(0)
-  extra        Float   @default(0)
-  festiva      Float   @default(0)
-  nocturna     Float   @default(0)
+  /** Mapa tipoHora → horas (JSON). */
+  hours        Json
   breakApplied Boolean @default(false)
   user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 

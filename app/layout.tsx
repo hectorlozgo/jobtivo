@@ -12,9 +12,9 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Control de horas | Cobro por categorías',
+  title: 'Control de horas',
   description:
-    'Registra horas normales, extra, festivas y nocturnas por categoría (Mozo, Mozo Especializado, Carretillero), aplica el IRPF y calcula tu cobro por día, semana o mes.',
+    'Registra horas por puesto y tipo, aplica retención y calcula tu cobro por día, semana o mes.',
   generator: 'v0.app',
   icons: {
     icon: [

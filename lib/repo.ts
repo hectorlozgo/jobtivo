@@ -5,6 +5,10 @@ import { sanitizeEntry, sanitizeSettings, isValidIsoDate } from '@/lib/validatio
 
 type AppDb = ReturnType<typeof getDbOrMemory>
 
+function asJson(value: unknown): Prisma.InputJsonValue {
+  return value as Prisma.InputJsonValue
+}
+
 async function withFallbackDb<T>(fn: (db: AppDb) => Promise<T>): Promise<T> {
   try {
     return await fn(getDbOrMemory())
@@ -20,11 +24,10 @@ export async function ensureUserSettings(userId: string): Promise<Settings> {
     if (row) return sanitizeSettings(row.json)
 
     const settings = sanitizeSettings(DEFAULT_DATA.settings)
-    const jsonSettings = JSON.parse(JSON.stringify(settings)) as Prisma.InputJsonValue
     await db.settings.upsert({
       where: { userId },
-      create: { userId, json: jsonSettings },
-      update: { json: jsonSettings }
+      create: { userId, json: asJson(settings) },
+      update: { json: asJson(settings) }
     })
     return settings
   })
@@ -37,44 +40,42 @@ export async function getSettings(userId: string): Promise<Settings> {
 export async function saveSettings(userId: string, input: unknown): Promise<Settings> {
   return withFallbackDb(async (db) => {
     const settings = sanitizeSettings(input)
-    const jsonSettings = JSON.parse(JSON.stringify(settings)) as Prisma.InputJsonValue
     await db.settings.upsert({
       where: { userId },
-      create: { userId, json: jsonSettings },
-      update: { json: jsonSettings }
+      create: { userId, json: asJson(settings) },
+      update: { json: asJson(settings) }
     })
     return settings
   })
 }
 
-export async function getEntries(userId: string): Promise<Record<string, DayEntry>> {
+export async function getEntries(
+  userId: string,
+  settings?: Settings,
+): Promise<Record<string, DayEntry>> {
+  const resolved = settings ?? (await getSettings(userId))
   return withFallbackDb(async (db) => {
     const rows = await db.entry.findMany({
       where: { userId },
       select: {
         date: true,
         category: true,
-        normal: true,
-        extra: true,
-        festiva: true,
-        nocturna: true,
+        hours: true,
         breakApplied: true
       }
     })
 
     const entries: Record<string, DayEntry> = {}
     for (const row of rows) {
-      const clean = sanitizeEntry({
-        date: row.date,
-        category: row.category,
-        hours: {
-          normal: row.normal,
-          extra: row.extra,
-          festiva: row.festiva,
-          nocturna: row.nocturna
+      const clean = sanitizeEntry(
+        {
+          date: row.date,
+          category: row.category,
+          hours: row.hours,
+          breakApplied: row.breakApplied
         },
-        breakApplied: row.breakApplied
-      })
+        resolved,
+      )
       if (clean) entries[clean.date] = clean
     }
     return entries
@@ -82,12 +83,14 @@ export async function getEntries(userId: string): Promise<Record<string, DayEntr
 }
 
 export async function getAppData(userId: string): Promise<AppData> {
-  const [entries, settings] = await Promise.all([getEntries(userId), getSettings(userId)])
+  const settings = await getSettings(userId)
+  const entries = await getEntries(userId, settings)
   return { entries, settings }
 }
 
 export async function upsertEntry(userId: string, input: unknown): Promise<DayEntry | null> {
-  const entry = sanitizeEntry(input)
+  const settings = await getSettings(userId)
+  const entry = sanitizeEntry(input, settings)
   if (!entry) return null
 
   return withFallbackDb(async (db) => {
@@ -97,18 +100,12 @@ export async function upsertEntry(userId: string, input: unknown): Promise<DayEn
         userId,
         date: entry.date,
         category: entry.category,
-        normal: entry.hours.normal,
-        extra: entry.hours.extra,
-        festiva: entry.hours.festiva,
-        nocturna: entry.hours.nocturna,
+        hours: asJson(entry.hours),
         breakApplied: entry.breakApplied
       },
       update: {
         category: entry.category,
-        normal: entry.hours.normal,
-        extra: entry.hours.extra,
-        festiva: entry.hours.festiva,
-        nocturna: entry.hours.nocturna,
+        hours: asJson(entry.hours),
         breakApplied: entry.breakApplied
       }
     })
@@ -135,5 +132,3 @@ export async function upsertMany(userId: string, inputs: unknown): Promise<DayEn
   }
   return saved
 }
-
-export const _meta = { categories: 3, hourTypes: 4 }

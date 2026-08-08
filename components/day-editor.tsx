@@ -11,15 +11,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { HoursInput } from "@/components/hours-input"
-import { entryTotals, formatDurationHours, formatEur } from "@/lib/calc"
-import { HOUR_COLOR_VAR } from "@/lib/hour-colors"
+import { entryTotals, formatDurationHours, formatMoney } from "@/lib/calc"
+import { hourColorVar } from "@/lib/hour-colors"
 import {
-  type CategoryId,
   type DayEntry,
-  type HourType,
   type Settings,
-  CATEGORIES,
-  HOUR_TYPES,
   MAX_TOTAL_HOURS_PER_DAY,
 } from "@/lib/types"
 import { formatLongDate } from "@/lib/dates"
@@ -67,12 +63,12 @@ export function DayEditor({
   // (un día nuevo sin horas no genera petición).
   const canSave = dirty && (exists || hasHours)
 
-  function setCategory(next: CategoryId) {
+  function setCategory(next: string) {
     setDraft((d) => ({ ...d, category: next }))
   }
 
-  function setHours(type: HourType, value: number) {
-    setDraft((d) => ({ ...d, hours: { ...d.hours, [type]: value } }))
+  function setHours(typeId: string, value: number) {
+    setDraft((d) => ({ ...d, hours: { ...d.hours, [typeId]: value } }))
   }
 
   function setBreakApplied(next: boolean) {
@@ -100,13 +96,18 @@ export function DayEditor({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="category">Categoría</Label>
-        <Select value={draft.category} onValueChange={(v) => setCategory(v as CategoryId)}>
+        <Label htmlFor="category">Puesto</Label>
+        <Select
+          value={draft.category}
+          onValueChange={(v) => {
+            if (v) setCategory(v)
+          }}
+        >
           <SelectTrigger id="category" className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {CATEGORIES.map((c) => (
+            {settings.categories.map((c) => (
               <SelectItem key={c.id} value={c.id}>
                 {c.name} ({c.short})
               </SelectItem>
@@ -116,13 +117,13 @@ export function DayEditor({
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        {HOUR_TYPES.map((t) => (
+        {settings.hourTypes.map((t) => (
           <HoursInput
             key={t.id}
             id={`hours-${t.id}`}
             label={t.label}
-            value={draft.hours[t.id]}
-            accentVar={HOUR_COLOR_VAR[t.id]}
+            value={draft.hours[t.id] ?? 0}
+            accentVar={hourColorVar(t.id, settings.hourTypes)}
             onChange={(v) => setHours(t.id, v)}
           />
         ))}
@@ -144,7 +145,7 @@ export function DayEditor({
             Descanso de jornada ({settings.breakMinutes} min)
           </span>
           <span className="text-xs text-muted-foreground">
-            Se descuenta de las horas normales (y del resto si hiciera falta). Configúralo en Tarifas.
+            Se descuenta empezando por el primer tipo de hora. Configúralo en Tarifas.
           </span>
           {breakPreview && (
             <span className="mt-1 text-xs font-medium tabular-nums text-foreground">
@@ -170,7 +171,9 @@ export function DayEditor({
         </div>
         <div className="text-right">
           <p className="text-xs text-muted-foreground">Importe bruto</p>
-          <p className="font-semibold tabular-nums text-primary">{formatEur(totals.gross)}</p>
+          <p className="font-semibold tabular-nums text-primary">
+            {formatMoney(totals.gross, settings.currency, settings.locale)}
+          </p>
         </div>
       </div>
 

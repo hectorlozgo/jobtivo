@@ -4,19 +4,19 @@
 
 import {
   type AppData,
-  type CategoryId,
+  type Category,
   type DayEntry,
   type HourType,
+  type Rates,
   type Settings,
-  CATEGORIES,
   DEFAULT_DATA,
-  HOUR_TYPES,
+  ETT_LOGISTICS_PRESET,
   MAX_BREAK_MINUTES,
+  MAX_CATALOG_NAME,
+  MAX_CATEGORIES,
+  MAX_HOUR_TYPES,
   MAX_HOURS_PER_TYPE,
 } from "./types"
-
-const CATEGORY_IDS = CATEGORIES.map((c) => c.id)
-const HOUR_TYPE_IDS = HOUR_TYPES.map((h) => h.id)
 
 // Convierte cualquier valor a un número de horas válido: 0..MAX, sin negativos,
 // sin NaN/Infinity, redondeado a 2 decimales.
@@ -58,8 +58,17 @@ function asBoolean(value: unknown, fallback: boolean): boolean {
   return fallback
 }
 
-export function isValidCategory(v: unknown): v is CategoryId {
-  return typeof v === "string" && (CATEGORY_IDS as string[]).includes(v)
+function asTrimmedString(value: unknown, fallback: string, max = MAX_CATALOG_NAME): string {
+  if (typeof value !== "string") return fallback
+  const t = value.trim().slice(0, max)
+  return t || fallback
+}
+
+const ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,39}$/
+
+function asId(value: unknown, fallback: string): string {
+  if (typeof value === "string" && ID_RE.test(value)) return value
+  return fallback
 }
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
@@ -70,54 +79,157 @@ export function isValidIsoDate(v: unknown): v is string {
   return !Number.isNaN(d.getTime())
 }
 
-export function sanitizeHours(input: unknown): Record<HourType, number> {
+/** Conserva claves id → horas; si hay allowedIds, solo esas (sin huérfanas). */
+export function sanitizeHours(
+  input: unknown,
+  allowedIds?: string[],
+): Record<string, number> {
   const obj = (input ?? {}) as Record<string, unknown>
-  const result = {} as Record<HourType, number>
-  for (const t of HOUR_TYPE_IDS) {
-    result[t] = clampHours(obj[t])
+  if (allowedIds) {
+    const result: Record<string, number> = {}
+    for (const id of allowedIds) {
+      result[id] = clampHours(obj[id])
+    }
+    return result
+  }
+  const result: Record<string, number> = {}
+  for (const [key, raw] of Object.entries(obj)) {
+    if (!ID_RE.test(key)) continue
+    result[key] = clampHours(raw)
   }
   return result
 }
 
-// Sanea un registro diario. Devuelve null si la fecha no es válida.
-export function sanitizeEntry(input: unknown): DayEntry | null {
+export function sanitizeEntry(
+  input: unknown,
+  settings?: Settings,
+): DayEntry | null {
   const e = (input ?? {}) as Record<string, unknown>
   if (!isValidIsoDate(e.date)) return null
+
+  const fallbackCategory =
+    settings?.defaultCategory ?? DEFAULT_DATA.settings.defaultCategory
+  const categoryRaw =
+    typeof e.category === "string" && ID_RE.test(e.category)
+      ? e.category
+      : fallbackCategory
+  const category =
+    settings && !settings.categories.some((c) => c.id === categoryRaw)
+      ? fallbackCategory
+      : categoryRaw
+
+  const allowedIds = settings?.hourTypes.map((t) => t.id)
   return {
     date: e.date,
-    category: isValidCategory(e.category) ? e.category : DEFAULT_DATA.settings.defaultCategory,
-    hours: sanitizeHours(e.hours),
+    category,
+    hours: sanitizeHours(e.hours, allowedIds),
     breakApplied: asBoolean(e.breakApplied, false),
   }
 }
 
+function sanitizeCategories(input: unknown): Category[] {
+  const fallback = ETT_LOGISTICS_PRESET.categories
+  if (!Array.isArray(input) || input.length === 0) return structuredClone(fallback)
+
+  const seen = new Set<string>()
+  const out: Category[] = []
+  for (const raw of input) {
+    if (out.length >= MAX_CATEGORIES) break
+    const row = (raw ?? {}) as Record<string, unknown>
+    const id = asId(row.id, "")
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    const name = asTrimmedString(row.name, id)
+    const short = asTrimmedString(row.short ?? "", name.slice(0, 4), 12)
+    out.push({ id, name, short })
+  }
+  return out.length > 0 ? out : structuredClone(fallback)
+}
+
+function sanitizeHourTypes(input: unknown): HourType[] {
+  const fallback = ETT_LOGISTICS_PRESET.hourTypes
+  if (!Array.isArray(input) || input.length === 0) return structuredClone(fallback)
+
+  const seen = new Set<string>()
+  const out: HourType[] = []
+  for (const raw of input) {
+    if (out.length >= MAX_HOUR_TYPES) break
+    const row = (raw ?? {}) as Record<string, unknown>
+    const id = asId(row.id, "")
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    out.push({ id, label: asTrimmedString(row.label, id) })
+  }
+  return out.length > 0 ? out : structuredClone(fallback)
+}
+
+function sanitizeRates(
+  input: unknown,
+  categories: Category[],
+  hourTypes: HourType[],
+  fallbackRates: Rates,
+): Rates {
+  const ratesIn = (input ?? {}) as Record<string, unknown>
+  const rates: Rates = {}
+  for (const cat of categories) {
+    const rs = (ratesIn[cat.id] ?? {}) as Record<string, unknown>
+    const set: Record<string, number> = {}
+    for (const t of hourTypes) {
+      const fallback = fallbackRates[cat.id]?.[t.id] ?? 0
+      set[t.id] = rs[t.id] === undefined ? fallback : clampRate(rs[t.id])
+    }
+    rates[cat.id] = set
+  }
+  return rates
+}
+
+/**
+ * Normaliza settings. Acepta el formato antiguo (sin categories/hourTypes, con `irpf`)
+ * y lo eleva al modelo genérico.
+ */
 export function sanitizeSettings(input: unknown): Settings {
   const obj = (input ?? {}) as Record<string, unknown>
-  const ratesIn = (obj.rates ?? {}) as Record<string, unknown>
-  const rates = {} as Settings["rates"]
-  for (const cat of CATEGORY_IDS) {
-    const rs = (ratesIn[cat] ?? {}) as Record<string, unknown>
-    const set = {} as Record<HourType, number>
-    for (const t of HOUR_TYPE_IDS) {
-      const fallback = DEFAULT_DATA.settings.rates[cat][t]
-      set[t] = rs[t] === undefined ? fallback : clampRate(rs[t])
-    }
-    rates[cat] = set
-  }
-  return {
-    irpf: obj.irpf === undefined ? DEFAULT_DATA.settings.irpf : clampPercent(obj.irpf),
-    defaultCategory: isValidCategory(obj.defaultCategory)
+  const defaults = DEFAULT_DATA.settings
+
+  // Formato antiguo: sin catálogos → asumir preset ETT (ids G1/G2/G3 + 4 tipos).
+  const hasCatalogs = Array.isArray(obj.categories) || Array.isArray(obj.hourTypes)
+  const categories = hasCatalogs
+    ? sanitizeCategories(obj.categories)
+    : structuredClone(ETT_LOGISTICS_PRESET.categories)
+  const hourTypes = hasCatalogs
+    ? sanitizeHourTypes(obj.hourTypes)
+    : structuredClone(ETT_LOGISTICS_PRESET.hourTypes)
+
+  const taxPercent =
+    obj.taxPercent !== undefined
+      ? clampPercent(obj.taxPercent)
+      : obj.irpf !== undefined
+        ? clampPercent(obj.irpf)
+        : defaults.taxPercent
+
+  const defaultCategory =
+    typeof obj.defaultCategory === "string" &&
+    categories.some((c) => c.id === obj.defaultCategory)
       ? obj.defaultCategory
-      : DEFAULT_DATA.settings.defaultCategory,
+      : (categories[0]?.id ?? defaults.defaultCategory)
+
+  return {
+    taxPercent,
+    taxLabel: asTrimmedString(obj.taxLabel, defaults.taxLabel, 24),
+    currency: asTrimmedString(obj.currency, defaults.currency, 8).toUpperCase(),
+    locale: asTrimmedString(obj.locale, defaults.locale, 16),
+    categories,
+    hourTypes,
+    rates: sanitizeRates(obj.rates, categories, hourTypes, defaults.rates),
+    defaultCategory,
     breakMinutes:
       obj.breakMinutes === undefined
-        ? DEFAULT_DATA.settings.breakMinutes
+        ? defaults.breakMinutes
         : clampBreakMinutes(obj.breakMinutes),
     applyBreakByDefault: asBoolean(
       obj.applyBreakByDefault,
-      DEFAULT_DATA.settings.applyBreakByDefault,
+      defaults.applyBreakByDefault,
     ),
-    rates,
   }
 }
 
@@ -128,7 +240,7 @@ export function sanitizeData(input: unknown): AppData {
   const entries: Record<string, DayEntry> = {}
   for (const [key, raw] of Object.entries(entriesIn)) {
     if (!isValidIsoDate(key)) continue
-    const sane = sanitizeEntry({ ...(raw as object), date: key })
+    const sane = sanitizeEntry({ ...(raw as object), date: key }, settings)
     if (sane) entries[key] = sane
   }
   return { settings, entries }

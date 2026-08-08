@@ -15,7 +15,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
-import { entryTotals, formatEur, round2 } from "@/lib/calc"
+import { entryTotals, formatMoney, round2 } from "@/lib/calc"
 import { type DayEntry, type Settings } from "@/lib/types"
 import { fromISO } from "@/lib/dates"
 
@@ -36,6 +36,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export function YearChart({ year, entries, settings }: YearChartProps) {
+  const money = (n: number) => formatMoney(n, settings.currency, settings.locale)
   const { data, totalGross, totalNet, totalHours } = useMemo(() => {
     const months = MONTH_LABELS.map((label) => ({ label, bruto: 0, neto: 0, horas: 0 }))
     let totalGross = 0
@@ -46,7 +47,7 @@ export function YearChart({ year, entries, settings }: YearChartProps) {
       const d = fromISO(entry.date)
       if (d.getFullYear() !== year) continue
       const { gross, totalHours: h } = entryTotals(entry, settings)
-      const net = gross - gross * (settings.irpf / 100)
+      const net = gross - gross * (settings.taxPercent / 100)
       const m = d.getMonth()
       months[m].bruto = round2(months[m].bruto + gross)
       months[m].neto = round2(months[m].neto + net)
@@ -79,11 +80,11 @@ export function YearChart({ year, entries, settings }: YearChartProps) {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Bruto</p>
-              <p className="font-semibold tabular-nums">{formatEur(totalGross)}</p>
+              <p className="font-semibold tabular-nums">{money(totalGross)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Neto</p>
-              <p className="font-semibold tabular-nums text-primary">{formatEur(totalNet)}</p>
+              <p className="font-semibold tabular-nums text-primary">{money(totalNet)}</p>
             </div>
           </div>
         </div>
@@ -105,7 +106,7 @@ export function YearChart({ year, entries, settings }: YearChartProps) {
                   formatter={(value, name) => (
                     <div className="flex w-full items-center justify-between gap-3">
                       <span className="capitalize text-muted-foreground">{name}</span>
-                      <span className="font-medium tabular-nums">{formatEur(Number(value))}</span>
+                      <span className="font-medium tabular-nums">{money(Number(value))}</span>
                     </div>
                   )}
                 />

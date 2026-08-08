@@ -11,9 +11,7 @@
     "prisma": "prisma",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",
-    "prisma:studio": "prisma studio",
-    "legacy:export": "node scripts/migrate-legacy-data.mjs export",
-    "legacy:import": "node scripts/migrate-legacy-data.mjs import"
+    "prisma:studio": "prisma studio"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

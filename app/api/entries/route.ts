@@ -1,21 +1,10 @@
 import { NextResponse } from 'next/server'
 
 import { UnauthorizedError, requireUserId, unauthorizedResponse } from '@/lib/auth-helpers'
-import { deleteEntry, getEntries, upsertEntry, upsertMany } from '@/lib/repo'
+import { deleteEntry, upsertEntry, upsertMany } from '@/lib/repo'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-export async function GET() {
-  try {
-    const userId = await requireUserId()
-    return NextResponse.json(await getEntries(userId))
-  } catch (err) {
-    if (err instanceof UnauthorizedError) return unauthorizedResponse()
-    console.log('[v0] GET /api/entries error:', (err as Error).message)
-    return NextResponse.json({ error: 'No se pudieron leer las entradas' }, { status: 500 })
-  }
-}
 
 export async function POST(request: Request) {
   try {
@@ -32,7 +21,7 @@ export async function POST(request: Request) {
     return NextResponse.json(entry)
   } catch (err) {
     if (err instanceof UnauthorizedError) return unauthorizedResponse()
-    console.log('[v0] POST /api/entries error:', (err as Error).message)
+    console.error('[entries] POST error:', (err as Error).message)
     return NextResponse.json({ error: 'No se pudo guardar la entrada' }, { status: 500 })
   }
 }
@@ -48,7 +37,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ ok: true })
   } catch (err) {
     if (err instanceof UnauthorizedError) return unauthorizedResponse()
-    console.log('[v0] DELETE /api/entries error:', (err as Error).message)
+    console.error('[entries] DELETE error:', (err as Error).message)
     return NextResponse.json({ error: 'No se pudo eliminar' }, { status: 500 })
   }
 }

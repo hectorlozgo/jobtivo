@@ -1,6 +1,6 @@
 # jobtime
 
-Control de horas por categoría (Mozo, Especializado, Carretillero) con tarifas, IRPF y exportación. Cada usuario tiene sus propios datos tras iniciar sesión.
+Control de horas con puestos y tipos de hora configurables, tarifas, retención (p. ej. IRPF) y exportación. Incluye preset ETT por defecto. Cada usuario tiene sus propios datos tras iniciar sesión.
 
 ## Desarrollo local
 

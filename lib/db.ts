@@ -5,7 +5,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { Pool } from 'pg'
 
 import { DEFAULT_DATA, type DayEntry, type Settings } from '@/lib/types'
-import { sanitizeSettings } from '@/lib/validation'
+import { sanitizeHours, sanitizeSettings } from '@/lib/validation'
 
 declare global {
   var __prisma: PrismaClient | undefined
@@ -17,23 +17,9 @@ declare global {
 type MemoryEntryRecord = {
   userId: string
   date: string
-  category: DayEntry['category']
-  normal: number
-  extra: number
-  festiva: number
-  nocturna: number
+  category: string
+  hours: Record<string, number>
   breakApplied: boolean
-}
-
-type MemoryEntryInput = {
-  userId?: string | null
-  date?: string | number | null
-  category?: string | null
-  normal?: number | string | null
-  extra?: number | string | null
-  festiva?: number | string | null
-  nocturna?: number | string | null
-  breakApplied?: boolean | string | number | null
 }
 
 type MemoryDb = {
@@ -149,10 +135,7 @@ export function createMemoryDb(): MemoryDb {
             userId,
             date,
             category: e.category,
-            normal: e.hours.normal,
-            extra: e.hours.extra,
-            festiva: e.hours.festiva,
-            nocturna: e.hours.nocturna,
+            hours: { ...e.hours },
             breakApplied: Boolean(e.breakApplied)
           }
         })
@@ -167,13 +150,8 @@ export function createMemoryDb(): MemoryDb {
 
         const entry: DayEntry = {
           date,
-          category: String(source.category ?? state.settings.defaultCategory) as DayEntry['category'],
-          hours: {
-            normal: Number(source.normal ?? 0),
-            extra: Number(source.extra ?? 0),
-            festiva: Number(source.festiva ?? 0),
-            nocturna: Number(source.nocturna ?? 0)
-          },
+          category: String(source.category ?? state.settings.defaultCategory),
+          hours: sanitizeHours(source.hours),
           breakApplied: Boolean(source.breakApplied)
         }
 
@@ -182,10 +160,7 @@ export function createMemoryDb(): MemoryDb {
           userId,
           date,
           category: entry.category,
-          normal: entry.hours.normal,
-          extra: entry.hours.extra,
-          festiva: entry.hours.festiva,
-          nocturna: entry.hours.nocturna,
+          hours: { ...entry.hours },
           breakApplied: entry.breakApplied
         }
       },

@@ -12,7 +12,7 @@ export async function GET() {
     return NextResponse.json(await getAppData(userId))
   } catch (err) {
     if (err instanceof UnauthorizedError) return unauthorizedResponse()
-    console.log('[v0] GET /api/data error:', (err as Error).message)
+    console.error('[data] GET error:', (err as Error).message)
     return NextResponse.json({ error: 'No se pudo leer la base de datos' }, { status: 500 })
   }
 }

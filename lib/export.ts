@@ -3,32 +3,12 @@
 // Exportación de registros a CSV, Excel (xlsx) y PDF.
 // Todo se genera en el cliente a partir de datos ya saneados.
 
-import { entryTotals, summarize, round2 } from "@/lib/calc"
-import {
-  type DayEntry,
-  type Settings,
-  CATEGORIES,
-  HOUR_TYPES,
-} from "@/lib/types"
+import { entryTotals, summarize, round2, formatMoney } from "@/lib/calc"
+import { type DayEntry, type Settings, categoryLabel } from "@/lib/types"
 import { formatLongDate, fromISO } from "@/lib/dates"
 
-const CATEGORY_NAME: Record<string, string> = Object.fromEntries(
-  CATEGORIES.map((c) => [c.id, `${c.name} (${c.short})`]),
-)
-
-const HEADERS = [
-  "Fecha",
-  "Categoría",
-  "Normal (h)",
-  "Extra (h)",
-  "Festiva (h)",
-  "Nocturna (h)",
-  "Descanso (min)",
-  "Total horas",
-  "Bruto (€)",
-]
-
 interface ExportBundle {
+  headers: string[]
   rows: (string | number)[][]
   totalsRow: (string | number)[]
   summaryRows: [string, string][]
@@ -42,6 +22,16 @@ export function buildExport(
   settings: Settings,
   periodLabel: string,
 ): ExportBundle {
+  const hourTypes = settings.hourTypes
+  const headers = [
+    "Fecha",
+    "Puesto",
+    ...hourTypes.map((t) => `${t.label} (h)`),
+    "Descanso (min)",
+    "Total horas",
+    `Bruto (${settings.currency})`,
+  ]
+
   const sorted = [...entries]
     .filter((e) => Object.values(e.hours).some((h) => h > 0))
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -50,11 +40,8 @@ export function buildExport(
     const t = entryTotals(e, settings)
     return [
       formatLongDate(fromISO(e.date)),
-      CATEGORY_NAME[e.category] ?? e.category,
-      t.hoursByType.normal,
-      t.hoursByType.extra,
-      t.hoursByType.festiva,
-      t.hoursByType.nocturna,
+      categoryLabel(settings, e.category),
+      ...hourTypes.map((ht) => t.hoursByType[ht.id] ?? 0),
       t.breakMinutesApplied,
       t.totalHours,
       round2(t.gross),
@@ -62,38 +49,37 @@ export function buildExport(
   })
 
   const s = summarize(sorted, settings)
-  const totalBreak = sorted.reduce((acc, e) => acc + entryTotals(e, settings).breakMinutesApplied, 0)
+  const totalBreak = sorted.reduce(
+    (acc, e) => acc + entryTotals(e, settings).breakMinutesApplied,
+    0,
+  )
   const totalsRow = [
     "TOTAL",
     "",
-    s.hoursByType.normal,
-    s.hoursByType.extra,
-    s.hoursByType.festiva,
-    s.hoursByType.nocturna,
+    ...hourTypes.map((ht) => s.hoursByType[ht.id] ?? 0),
     totalBreak,
     s.totalHours,
     s.gross,
   ]
 
+  const money = (n: number) => formatMoney(n, settings.currency, settings.locale)
+  const taxLabel = settings.taxLabel || "Retención"
   const summaryRows: [string, string][] = [
     ["Días trabajados", String(s.days)],
     ["Total horas", String(s.totalHours)],
-    ["Bruto", eur(s.gross)],
-    [`IRPF (${settings.irpf}%)`, `-${eur(s.irpfAmount)}`],
-    ["Neto", eur(s.net)],
+    ["Bruto", money(s.gross)],
+    [`${taxLabel} (${settings.taxPercent}%)`, `-${money(s.taxAmount)}`],
+    ["Neto", money(s.net)],
   ]
 
   return {
+    headers,
     rows,
     totalsRow,
     summaryRows,
     filenameBase: `horas-${slug(periodLabel)}`,
     title: `Control de horas · ${periodLabel}`,
   }
-}
-
-function eur(n: number): string {
-  return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n)
 }
 
 function slug(s: string): string {
@@ -121,7 +107,7 @@ export function exportCsv(bundle: ExportBundle) {
     return /[",\n;]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str
   }
   const lines: string[] = []
-  lines.push(HEADERS.map(escape).join(";"))
+  lines.push(bundle.headers.map(escape).join(";"))
   for (const row of bundle.rows) lines.push(row.map(escape).join(";"))
   lines.push(bundle.totalsRow.map(escape).join(";"))
   lines.push("")
@@ -139,7 +125,7 @@ export async function exportExcel(bundle: ExportBundle) {
   const aoa: (string | number)[][] = [
     [bundle.title],
     [],
-    HEADERS,
+    bundle.headers,
     ...bundle.rows,
     bundle.totalsRow,
     [],
@@ -147,17 +133,9 @@ export async function exportExcel(bundle: ExportBundle) {
     ...bundle.summaryRows,
   ]
   const ws = XLSX.utils.aoa_to_sheet(aoa)
-  ws["!cols"] = [
-    { wch: 22 },
-    { wch: 22 },
-    { wch: 11 },
-    { wch: 11 },
-    { wch: 11 },
-    { wch: 12 },
-    { wch: 14 },
-    { wch: 12 },
-    { wch: 12 },
-  ]
+  ws["!cols"] = bundle.headers.map((_, i) => ({
+    wch: i === 0 || i === 1 ? 22 : 12,
+  }))
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, "Horas")
   const out = XLSX.write(wb, { bookType: "xlsx", type: "array" })
@@ -183,26 +161,21 @@ export async function exportPdf(bundle: ExportBundle) {
   doc.text(`Generado el ${formatLongDate(new Date())}`, 40, 58)
   doc.setTextColor(0)
 
+  const numericCols = Object.fromEntries(
+    bundle.headers.slice(2).map((_, i) => [i + 2, { halign: "right" as const }]),
+  )
+
   autoTable(doc, {
     startY: 76,
-    head: [HEADERS],
+    head: [bundle.headers],
     body: bundle.rows.map((r) => r.map(String)),
     foot: [bundle.totalsRow.map(String)],
     styles: { fontSize: 9, cellPadding: 4 },
     headStyles: { fillColor: [34, 120, 90], textColor: 255 },
     footStyles: { fillColor: [230, 240, 234], textColor: 0, fontStyle: "bold" },
-    columnStyles: {
-      2: { halign: "right" },
-      3: { halign: "right" },
-      4: { halign: "right" },
-      5: { halign: "right" },
-      6: { halign: "right" },
-      7: { halign: "right" },
-      8: { halign: "right" },
-    },
+    columnStyles: numericCols,
   })
 
-  // Tabla de resumen debajo.
   const afterTable = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable
   const y = (afterTable?.finalY ?? 76) + 24
   autoTable(doc, {

@@ -1,11 +1,6 @@
 // Lógica de cálculo de importes a partir de las horas y tarifas.
 
-import {
-  type DayEntry,
-  type HourType,
-  type Settings,
-  HOUR_TYPES,
-} from "./types"
+import { type DayEntry, type Settings } from "./types"
 
 export interface EntryTotals {
   /** Horas brutas introducidas por el usuario. */
@@ -14,7 +9,7 @@ export interface EntryTotals {
   totalHours: number
   /** Minutos de descanso efectivamente restados. */
   breakMinutesApplied: number
-  hoursByType: Record<HourType, number>
+  hoursByType: Record<string, number>
   gross: number
 }
 
@@ -31,28 +26,31 @@ export function formatDurationHours(hours: number): string {
   return `${h}h ${m}m`
 }
 
-function sumHours(hours: Record<HourType, number>): number {
+function sumHours(hours: Record<string, number>, typeIds: string[]): number {
   let total = 0
-  for (const { id } of HOUR_TYPES) total += hours[id] ?? 0
+  for (const id of typeIds) total += hours[id] ?? 0
   return round2(total)
 }
 
 /**
  * Horas cobrables por tipo: resta el descanso de `settings.breakMinutes`
- * empezando por "normal" y siguiendo el orden de HOUR_TYPES.
+ * empezando por el primer tipo de hora y siguiendo el orden del catálogo.
  */
-export function billableHours(
+function billableHours(
   entry: DayEntry,
   settings: Settings,
-): { hours: Record<HourType, number>; breakMinutesApplied: number } {
-  const hours = { ...entry.hours } as Record<HourType, number>
+): { hours: Record<string, number>; breakMinutesApplied: number } {
+  const typeIds = settings.hourTypes.map((t) => t.id)
+  const hours: Record<string, number> = {}
+  for (const id of typeIds) hours[id] = entry.hours[id] ?? 0
+
   const configured = Math.max(0, settings.breakMinutes ?? 0)
 
   if (!entry.breakApplied || configured <= 0) {
     return { hours, breakMinutesApplied: 0 }
   }
 
-  const gross = sumHours(hours)
+  const gross = sumHours(hours, typeIds)
   if (gross <= 0) {
     return { hours, breakMinutesApplied: 0 }
   }
@@ -60,7 +58,7 @@ export function billableHours(
   const maxDeductHours = Math.min(configured / 60, gross)
   let remaining = round2(maxDeductHours)
 
-  for (const { id } of HOUR_TYPES) {
+  for (const id of typeIds) {
     if (remaining <= 0) break
     const current = hours[id] ?? 0
     if (current <= 0) continue
@@ -78,15 +76,19 @@ export function billableHours(
 
 // Importe bruto de un registro diario según la tarifa de su categoría.
 export function entryTotals(entry: DayEntry, settings: Settings): EntryTotals {
-  const rateSet = settings.rates[entry.category]
-  const grossHours = sumHours(entry.hours)
+  const rateSet = settings.rates[entry.category] ?? {}
+  const typeIds = settings.hourTypes.map((t) => t.id)
+  const grossHours = sumHours(
+    Object.fromEntries(typeIds.map((id) => [id, entry.hours[id] ?? 0])),
+    typeIds,
+  )
   const { hours, breakMinutesApplied } = billableHours(entry, settings)
 
   let totalHours = 0
   let gross = 0
-  const hoursByType = {} as Record<HourType, number>
+  const hoursByType: Record<string, number> = {}
 
-  for (const { id } of HOUR_TYPES) {
+  for (const id of typeIds) {
     const h = hours[id] ?? 0
     hoursByType[id] = h
     totalHours += h
@@ -106,15 +108,15 @@ export interface PeriodSummary {
   totalHours: number
   hoursByType: Record<string, number>
   gross: number
-  irpfAmount: number
+  taxAmount: number
   net: number
   days: number
 }
 
-// Resumen agregado de un conjunto de registros, aplicando el IRPF.
+// Resumen agregado de un conjunto de registros, aplicando la retención.
 export function summarize(entries: DayEntry[], settings: Settings): PeriodSummary {
   const hoursByType: Record<string, number> = {}
-  for (const { id } of HOUR_TYPES) hoursByType[id] = 0
+  for (const { id } of settings.hourTypes) hoursByType[id] = 0
 
   let totalHours = 0
   let gross = 0
@@ -125,27 +127,38 @@ export function summarize(entries: DayEntry[], settings: Settings): PeriodSummar
     if (t.totalHours > 0 || t.grossHours > 0) days += 1
     totalHours += t.totalHours
     gross += t.gross
-    for (const { id } of HOUR_TYPES) {
-      hoursByType[id] += t.hoursByType[id] ?? 0
+    for (const { id } of settings.hourTypes) {
+      hoursByType[id] = round2((hoursByType[id] ?? 0) + (t.hoursByType[id] ?? 0))
     }
   }
 
-  const irpfAmount = round2(gross * (settings.irpf / 100))
-  const net = round2(gross - irpfAmount)
+  const taxAmount = round2(gross * (settings.taxPercent / 100))
+  const net = round2(gross - taxAmount)
 
   return {
     totalHours: round2(totalHours),
     hoursByType,
     gross: round2(gross),
-    irpfAmount,
+    taxAmount,
     net,
     days,
   }
 }
 
-export function formatEur(n: number): string {
-  return new Intl.NumberFormat("es-ES", {
-    style: "currency",
-    currency: "EUR",
-  }).format(n)
+export function formatMoney(
+  n: number,
+  currency = "EUR",
+  locale = "es-ES",
+): string {
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency,
+    }).format(n)
+  } catch {
+    return new Intl.NumberFormat("es-ES", {
+      style: "currency",
+      currency: "EUR",
+    }).format(n)
+  }
 }
