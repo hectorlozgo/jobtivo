@@ -17,13 +17,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { HOUR_COLOR_VAR } from "@/lib/hour-colors"
-import { clampPercent, clampRate } from "@/lib/validation"
+import { clampBreakMinutes, clampPercent, clampRate } from "@/lib/validation"
 import {
   type CategoryId,
   type HourType,
   type Settings,
   CATEGORIES,
   HOUR_TYPES,
+  MAX_BREAK_MINUTES,
 } from "@/lib/types"
 
 interface SettingsPanelProps {
@@ -37,12 +38,14 @@ function NumberField({
   onCommit,
   suffix,
   accentVar,
+  step = 0.5,
 }: {
   id: string
   value: number
   onCommit: (raw: string) => void
   suffix?: string
   accentVar?: string
+  step?: number
 }) {
   return (
     <div className="relative">
@@ -58,7 +61,7 @@ function NumberField({
         type="number"
         inputMode="decimal"
         min={0}
-        step={0.5}
+        step={step}
         value={value}
         onChange={(e) => onCommit(e.target.value)}
         onKeyDown={(e) => {
@@ -88,6 +91,17 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
 
   function setDefaultCategory(value: CategoryId) {
     onChange({ ...settings, defaultCategory: value })
+  }
+
+  function setBreakMinutes(raw: string) {
+    onChange({
+      ...settings,
+      breakMinutes: clampBreakMinutes(raw === "" ? 0 : raw),
+    })
+  }
+
+  function setApplyBreakByDefault(next: boolean) {
+    onChange({ ...settings, applyBreakByDefault: next })
   }
 
   return (
@@ -122,6 +136,46 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
               </SelectContent>
             </Select>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Descanso</CardTitle>
+          <CardDescription>
+            Minutos que se restan de la jornada bruta cuando marcas el descanso en un día.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-end gap-6">
+          <div className="flex max-w-40 flex-col gap-1.5">
+            <Label htmlFor="break-minutes">Duración (min)</Label>
+            <NumberField
+              id="break-minutes"
+              value={settings.breakMinutes}
+              onCommit={setBreakMinutes}
+              suffix="min"
+              step={5}
+            />
+            <p className="text-xs text-muted-foreground">Máximo {MAX_BREAK_MINUTES} min.</p>
+          </div>
+          <label
+            htmlFor="apply-break-default"
+            className="flex cursor-pointer items-start gap-3 pb-1"
+          >
+            <input
+              id="apply-break-default"
+              type="checkbox"
+              checked={settings.applyBreakByDefault}
+              onChange={(e) => setApplyBreakByDefault(e.target.checked)}
+              className="mt-0.5 size-4 shrink-0 accent-primary"
+            />
+            <span className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium">Aplicar por defecto</span>
+              <span className="text-xs text-muted-foreground">
+                Los días nuevos empiezan con el descanso marcado.
+              </span>
+            </span>
+          </label>
         </CardContent>
       </Card>
 

@@ -40,7 +40,7 @@ export function MonthView({ cursor, entries, settings, selectedISO, onSelect }: 
           const selected = iso === selectedISO
           const today = isToday(day)
           const activeTypes = entry
-            ? HOUR_TYPES.filter((t) => (entry.hours[t.id] ?? 0) > 0)
+            ? HOUR_TYPES.filter((t) => (totals?.hoursByType[t.id] ?? entry.hours[t.id] ?? 0) > 0)
             : []
 
           return (

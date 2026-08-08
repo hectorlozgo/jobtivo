@@ -23,6 +23,7 @@ const HEADERS = [
   "Extra (h)",
   "Festiva (h)",
   "Nocturna (h)",
+  "Descanso (min)",
   "Total horas",
   "Bruto (€)",
 ]
@@ -50,16 +51,18 @@ export function buildExport(
     return [
       formatLongDate(fromISO(e.date)),
       CATEGORY_NAME[e.category] ?? e.category,
-      e.hours.normal,
-      e.hours.extra,
-      e.hours.festiva,
-      e.hours.nocturna,
+      t.hoursByType.normal,
+      t.hoursByType.extra,
+      t.hoursByType.festiva,
+      t.hoursByType.nocturna,
+      t.breakMinutesApplied,
       t.totalHours,
       round2(t.gross),
     ]
   })
 
   const s = summarize(sorted, settings)
+  const totalBreak = sorted.reduce((acc, e) => acc + entryTotals(e, settings).breakMinutesApplied, 0)
   const totalsRow = [
     "TOTAL",
     "",
@@ -67,6 +70,7 @@ export function buildExport(
     s.hoursByType.extra,
     s.hoursByType.festiva,
     s.hoursByType.nocturna,
+    totalBreak,
     s.totalHours,
     s.gross,
   ]
@@ -143,7 +147,17 @@ export async function exportExcel(bundle: ExportBundle) {
     ...bundle.summaryRows,
   ]
   const ws = XLSX.utils.aoa_to_sheet(aoa)
-  ws["!cols"] = [{ wch: 22 }, { wch: 22 }, { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 12 }, { wch: 12 }, { wch: 12 }]
+  ws["!cols"] = [
+    { wch: 22 },
+    { wch: 22 },
+    { wch: 11 },
+    { wch: 11 },
+    { wch: 11 },
+    { wch: 12 },
+    { wch: 14 },
+    { wch: 12 },
+    { wch: 12 },
+  ]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, "Horas")
   const out = XLSX.write(wb, { bookType: "xlsx", type: "array" })
@@ -184,6 +198,7 @@ export async function exportPdf(bundle: ExportBundle) {
       5: { halign: "right" },
       6: { halign: "right" },
       7: { halign: "right" },
+      8: { halign: "right" },
     },
   })
 

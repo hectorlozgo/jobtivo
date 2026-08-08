@@ -11,6 +11,7 @@ import {
   CATEGORIES,
   DEFAULT_DATA,
   HOUR_TYPES,
+  MAX_BREAK_MINUTES,
   MAX_HOURS_PER_TYPE,
 } from "./types"
 
@@ -42,6 +43,21 @@ export function clampRate(value: unknown): number {
   return Math.round(clamped * 100) / 100
 }
 
+/** Minutos de descanso: entero 0..MAX_BREAK_MINUTES. */
+export function clampBreakMinutes(value: unknown): number {
+  const n = typeof value === "number" ? value : Number.parseFloat(String(value))
+  if (!Number.isFinite(n)) return DEFAULT_DATA.settings.breakMinutes
+  const clamped = Math.min(Math.max(Math.round(n), 0), MAX_BREAK_MINUTES)
+  return clamped
+}
+
+function asBoolean(value: unknown, fallback: boolean): boolean {
+  if (typeof value === "boolean") return value
+  if (value === "true" || value === 1 || value === "1") return true
+  if (value === "false" || value === 0 || value === "0") return false
+  return fallback
+}
+
 export function isValidCategory(v: unknown): v is CategoryId {
   return typeof v === "string" && (CATEGORY_IDS as string[]).includes(v)
 }
@@ -71,6 +87,7 @@ export function sanitizeEntry(input: unknown): DayEntry | null {
     date: e.date,
     category: isValidCategory(e.category) ? e.category : DEFAULT_DATA.settings.defaultCategory,
     hours: sanitizeHours(e.hours),
+    breakApplied: asBoolean(e.breakApplied, false),
   }
 }
 
@@ -92,6 +109,14 @@ export function sanitizeSettings(input: unknown): Settings {
     defaultCategory: isValidCategory(obj.defaultCategory)
       ? obj.defaultCategory
       : DEFAULT_DATA.settings.defaultCategory,
+    breakMinutes:
+      obj.breakMinutes === undefined
+        ? DEFAULT_DATA.settings.breakMinutes
+        : clampBreakMinutes(obj.breakMinutes),
+    applyBreakByDefault: asBoolean(
+      obj.applyBreakByDefault,
+      DEFAULT_DATA.settings.applyBreakByDefault,
+    ),
     rates,
   }
 }

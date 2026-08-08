@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { HoursInput } from "@/components/hours-input"
-import { entryTotals, formatEur } from "@/lib/calc"
+import { entryTotals, formatDurationHours, formatEur } from "@/lib/calc"
 import { HOUR_COLOR_VAR } from "@/lib/hour-colors"
 import {
   type CategoryId,
@@ -59,8 +59,8 @@ export function DayEditor({
   }, [entrySignature])
 
   const totals = useMemo(() => entryTotals(draft, settings), [draft, settings])
-  const overLimit = totals.totalHours > MAX_TOTAL_HOURS_PER_DAY
-  const hasHours = totals.totalHours > 0
+  const overLimit = totals.grossHours > MAX_TOTAL_HOURS_PER_DAY
+  const hasHours = totals.grossHours > 0
   const dirty = JSON.stringify(draft) !== entrySignature
 
   // Se puede guardar si hay cambios sin persistir y hay algo que guardar
@@ -75,18 +75,28 @@ export function DayEditor({
     setDraft((d) => ({ ...d, hours: { ...d.hours, [type]: value } }))
   }
 
+  function setBreakApplied(next: boolean) {
+    setDraft((d) => ({ ...d, breakApplied: next }))
+  }
+
   function handleSave() {
     if (!canSave) return
     onSave(draft)
   }
 
   const dateLabel = formatLongDate(new Date(dateISO + "T00:00:00"))
+  const breakPreview =
+    draft.breakApplied && totals.breakMinutesApplied > 0
+      ? `${formatDurationHours(totals.grossHours)} − ${totals.breakMinutesApplied} min = ${formatDurationHours(totals.totalHours)}`
+      : null
 
   return (
     <div className="flex flex-col gap-5">
       <div>
         <h3 className="text-base font-semibold capitalize text-pretty">{dateLabel}</h3>
-        <p className="text-sm text-muted-foreground">Registra las horas trabajadas en este día.</p>
+        <p className="text-sm text-muted-foreground">
+          Introduce la jornada bruta; el descanso se resta automáticamente si lo marcas.
+        </p>
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -118,17 +128,45 @@ export function DayEditor({
         ))}
       </div>
 
+      <label
+        htmlFor="break-applied"
+        className="flex cursor-pointer items-start gap-3 rounded-lg border bg-muted/30 px-4 py-3"
+      >
+        <input
+          id="break-applied"
+          type="checkbox"
+          checked={draft.breakApplied}
+          onChange={(e) => setBreakApplied(e.target.checked)}
+          className="mt-0.5 size-4 shrink-0 accent-primary"
+        />
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-sm font-medium">
+            Descanso de jornada ({settings.breakMinutes} min)
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Se descuenta de las horas normales (y del resto si hiciera falta). Configúralo en Tarifas.
+          </span>
+          {breakPreview && (
+            <span className="mt-1 text-xs font-medium tabular-nums text-foreground">
+              {breakPreview}
+            </span>
+          )}
+        </span>
+      </label>
+
       {overLimit && (
         <p role="alert" className="text-sm font-medium text-destructive">
-          El total de {totals.totalHours} h supera el máximo recomendado de {MAX_TOTAL_HOURS_PER_DAY} h
+          El total de {totals.grossHours} h supera el máximo recomendado de {MAX_TOTAL_HOURS_PER_DAY} h
           diarias.
         </p>
       )}
 
       <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-4 py-3">
         <div>
-          <p className="text-xs text-muted-foreground">Total del día</p>
-          <p className="font-semibold tabular-nums">{totals.totalHours} h</p>
+          <p className="text-xs text-muted-foreground">
+            {totals.breakMinutesApplied > 0 ? "Horas cobrables" : "Total del día"}
+          </p>
+          <p className="font-semibold tabular-nums">{formatDurationHours(totals.totalHours)}</p>
         </div>
         <div className="text-right">
           <p className="text-xs text-muted-foreground">Importe bruto</p>

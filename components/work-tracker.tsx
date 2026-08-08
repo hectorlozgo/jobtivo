@@ -47,8 +47,13 @@ import { UserMenu } from './user-menu'
 type ViewMode = 'mes' | 'semana' | 'dia'
 type Tab = 'calendario' | 'tarifas'
 
-function emptyEntry(iso: string, category: CategoryId): DayEntry {
-  return { date: iso, category, hours: { normal: 0, extra: 0, festiva: 0, nocturna: 0 } }
+function emptyEntry(iso: string, category: CategoryId, breakApplied: boolean): DayEntry {
+  return {
+    date: iso,
+    category,
+    hours: { normal: 0, extra: 0, festiva: 0, nocturna: 0 },
+    breakApplied,
+  }
 }
 
 export function WorkTracker() {
@@ -61,7 +66,9 @@ export function WorkTracker() {
 
   const settings = data.settings
   const selectedExists = Boolean(data.entries[selectedISO])
-  const selectedEntry = data.entries[selectedISO] ?? emptyEntry(selectedISO, settings.defaultCategory)
+  const selectedEntry =
+    data.entries[selectedISO] ??
+    emptyEntry(selectedISO, settings.defaultCategory, settings.applyBreakByDefault)
 
   useEffect(() => {
     function onScroll() {
@@ -104,7 +111,12 @@ export function WorkTracker() {
     const entries: DayEntry[] = []
     for (let i = 0; i < 5; i++) {
       const iso = toISO(addDays(start, i))
-      entries.push({ date: iso, category: template.category, hours: { ...template.hours } })
+      entries.push({
+        date: iso,
+        category: template.category,
+        hours: { ...template.hours },
+        breakApplied: template.breakApplied,
+      })
     }
     void saveMany(entries)
   }

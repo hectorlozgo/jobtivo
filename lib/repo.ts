@@ -57,7 +57,8 @@ export async function getEntries(userId: string): Promise<Record<string, DayEntr
         normal: true,
         extra: true,
         festiva: true,
-        nocturna: true
+        nocturna: true,
+        breakApplied: true
       }
     })
 
@@ -71,7 +72,8 @@ export async function getEntries(userId: string): Promise<Record<string, DayEntr
           extra: row.extra,
           festiva: row.festiva,
           nocturna: row.nocturna
-        }
+        },
+        breakApplied: row.breakApplied
       })
       if (clean) entries[clean.date] = clean
     }
@@ -98,14 +100,16 @@ export async function upsertEntry(userId: string, input: unknown): Promise<DayEn
         normal: entry.hours.normal,
         extra: entry.hours.extra,
         festiva: entry.hours.festiva,
-        nocturna: entry.hours.nocturna
+        nocturna: entry.hours.nocturna,
+        breakApplied: entry.breakApplied
       },
       update: {
         category: entry.category,
         normal: entry.hours.normal,
         extra: entry.hours.extra,
         festiva: entry.hours.festiva,
-        nocturna: entry.hours.nocturna
+        nocturna: entry.hours.nocturna,
+        breakApplied: entry.breakApplied
       }
     })
     return entry

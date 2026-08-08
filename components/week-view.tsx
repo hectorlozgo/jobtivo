@@ -61,16 +61,21 @@ export function WeekView({ cursor, entries, settings, selectedISO, onSelect }: W
                     )}
                   </div>
                   <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-                    {HOUR_TYPES.filter((t) => (entry!.hours[t.id] ?? 0) > 0).map((t) => (
+                    {HOUR_TYPES.filter((t) => (totals.hoursByType[t.id] ?? 0) > 0).map((t) => (
                       <span key={t.id} className="flex items-center gap-1 text-xs text-muted-foreground">
                         <span
                           aria-hidden="true"
                           className="size-1.5 rounded-full"
                           style={{ backgroundColor: `var(${HOUR_COLOR_VAR[t.id]})` }}
                         />
-                        {t.label} {entry!.hours[t.id]}h
+                        {t.label} {totals.hoursByType[t.id]}h
                       </span>
                     ))}
+                    {entry!.breakApplied && totals.breakMinutesApplied > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        −{totals.breakMinutesApplied} min descanso
+                      </span>
+                    )}
                   </div>
                 </>
               ) : (
