@@ -41,9 +41,9 @@ export function buildExport(
     return [
       formatLongDate(fromISO(e.date)),
       categoryLabel(settings, e.category),
-      ...hourTypes.map((ht) => t.hoursByType[ht.id] ?? 0),
-      t.breakMinutesApplied,
-      t.totalHours,
+      ...hourTypes.map((ht) => round2(t.hoursByType[ht.id] ?? 0)),
+      Math.round(t.breakMinutesApplied),
+      round2(t.totalHours),
       round2(t.gross),
     ]
   })
@@ -56,17 +56,17 @@ export function buildExport(
   const totalsRow = [
     "TOTAL",
     "",
-    ...hourTypes.map((ht) => s.hoursByType[ht.id] ?? 0),
-    totalBreak,
-    s.totalHours,
-    s.gross,
+    ...hourTypes.map((ht) => round2(s.hoursByType[ht.id] ?? 0)),
+    Math.round(totalBreak),
+    round2(s.totalHours),
+    round2(s.gross),
   ]
 
   const money = (n: number) => formatMoney(n, settings.currency, settings.locale)
   const taxLabel = settings.taxLabel || "Retención"
   const summaryRows: [string, string][] = [
     ["Días trabajados", String(s.days)],
-    ["Total horas", String(s.totalHours)],
+    ["Total horas", round2(s.totalHours).toFixed(2)],
     ["Bruto", money(s.gross)],
     [`${taxLabel} (${settings.taxPercent}%)`, `-${money(s.taxAmount)}`],
     ["Neto", money(s.net)],
@@ -100,18 +100,34 @@ function download(blob: Blob, filename: string) {
   URL.revokeObjectURL(url)
 }
 
+/** Horas/importe a 2 decimales; descanso en enteros. Evita basura de float al stringify. */
+function formatExportNumber(
+  value: string | number,
+  colIndex: number,
+  headers: string[],
+): string {
+  if (typeof value !== "number") return value
+  const header = headers[colIndex] ?? ""
+  if (header === "Descanso (min)") return String(Math.round(value))
+  return round2(value).toFixed(2)
+}
+
+function escapeCsv(value: string): string {
+  return /[",\n;]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
+}
+
 // ---- CSV ----
 export function exportCsv(bundle: ExportBundle) {
-  const escape = (v: string | number) => {
-    const str = String(v)
-    return /[",\n;]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str
-  }
+  const cell = (v: string | number, colIndex: number) =>
+    escapeCsv(formatExportNumber(v, colIndex, bundle.headers))
+
   const lines: string[] = []
-  lines.push(bundle.headers.map(escape).join(";"))
-  for (const row of bundle.rows) lines.push(row.map(escape).join(";"))
-  lines.push(bundle.totalsRow.map(escape).join(";"))
+  lines.push(bundle.headers.map((h) => escapeCsv(h)).join(";"))
+  for (const row of bundle.rows) lines.push(row.map(cell).join(";"))
+  lines.push(bundle.totalsRow.map(cell).join(";"))
   lines.push("")
-  for (const [k, v] of bundle.summaryRows) lines.push(`${escape(k)};${escape(v)}`)
+  for (const [k, v] of bundle.summaryRows)
+    lines.push(`${escapeCsv(k)};${escapeCsv(v)}`)
   // BOM para que Excel abra bien los acentos y el euro.
   const blob = new Blob(["\uFEFF" + lines.join("\r\n")], {
     type: "text/csv;charset=utf-8;",
@@ -161,19 +177,32 @@ export async function exportPdf(bundle: ExportBundle) {
   doc.text(`Generado el ${formatLongDate(new Date())}`, 40, 58)
   doc.setTextColor(0)
 
-  const numericCols = Object.fromEntries(
-    bundle.headers.slice(2).map((_, i) => [i + 2, { halign: "right" as const }]),
-  )
+  const toPdfRow = (row: (string | number)[]) =>
+    row.map((v, i) => formatExportNumber(v, i, bundle.headers))
 
+  // columnStyles solo aplica al body; head/foot necesitan didParseCell.
   autoTable(doc, {
     startY: 76,
     head: [bundle.headers],
-    body: bundle.rows.map((r) => r.map(String)),
-    foot: [bundle.totalsRow.map(String)],
-    styles: { fontSize: 9, cellPadding: 4 },
-    headStyles: { fillColor: [34, 120, 90], textColor: 255 },
-    footStyles: { fillColor: [230, 240, 234], textColor: 0, fontStyle: "bold" },
-    columnStyles: numericCols,
+    body: bundle.rows.map(toPdfRow),
+    foot: [toPdfRow(bundle.totalsRow)],
+    styles: { fontSize: 9, cellPadding: 4, overflow: "linebreak" },
+    headStyles: { fillColor: [34, 120, 90], textColor: 255, valign: "middle" },
+    footStyles: {
+      fillColor: [230, 240, 234],
+      textColor: 0,
+      fontStyle: "bold",
+      valign: "middle",
+    },
+    columnStyles: Object.fromEntries(
+      bundle.headers.map((_, i) => [
+        i,
+        i < 2 ? { halign: "left" as const } : { halign: "right" as const },
+      ]),
+    ),
+    didParseCell: (data) => {
+      if (data.column.index >= 2) data.cell.styles.halign = "right"
+    },
   })
 
   const afterTable = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable
