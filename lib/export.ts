@@ -69,8 +69,14 @@ export function buildExport(
     ["Total horas", round2(s.totalHours).toFixed(2)],
     ["Bruto", money(s.gross)],
     [`${taxLabel} (${settings.taxPercent}%)`, `-${money(s.taxAmount)}`],
-    ["Neto", money(s.net)],
   ]
+  if (s.socialSecurityAmount > 0) {
+    summaryRows.push([
+      `SS trabajador (${settings.socialSecurityPercent}%)`,
+      `-${money(s.socialSecurityAmount)}`,
+    ])
+  }
+  summaryRows.push(["Neto estimado", money(s.net)])
 
   return {
     headers,

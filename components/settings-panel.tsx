@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useRef, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -33,21 +34,36 @@ interface SettingsPanelProps {
   onChange: (settings: Settings) => void
 }
 
+function formatNumberText(value: number): string {
+  return value === 0 ? "" : String(value)
+}
+
 function NumberField({
   id,
   value,
   onCommit,
   suffix,
   accentVar,
-  step = 0.5,
 }: {
   id: string
   value: number
   onCommit: (raw: string) => void
   suffix?: string
   accentVar?: string
+  /** Reservado por compatibilidad con llamadas existentes. */
   step?: number
 }) {
+  const [text, setText] = useState(() => formatNumberText(value))
+  const focusedRef = useRef(false)
+
+  useEffect(() => {
+    if (!focusedRef.current) setText(formatNumberText(value))
+  }, [value])
+
+  function commit(raw: string) {
+    onCommit(raw === "" || raw === "." ? "0" : raw)
+  }
+
   return (
     <div className="relative">
       {accentVar && (
@@ -59,14 +75,34 @@ function NumberField({
       )}
       <Input
         id={id}
-        type="number"
+        type="text"
         inputMode="decimal"
-        min={0}
-        step={step}
-        value={value}
-        onChange={(e) => onCommit(e.target.value)}
+        value={text}
+        placeholder="0"
+        onFocus={() => {
+          focusedRef.current = true
+        }}
+        onChange={(e) => {
+          const raw = e.target.value.trim().replace(",", ".")
+          if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return
+          setText(raw)
+          if (raw === "" || raw === ".") return
+          onCommit(raw)
+        }}
+        onBlur={() => {
+          focusedRef.current = false
+          const raw = text === "" || text === "." ? "0" : text
+          commit(raw)
+          const n = Number.parseFloat(raw)
+          setText(!Number.isFinite(n) || n === 0 ? "" : String(Math.round(n * 100) / 100))
+        }}
         onKeyDown={(e) => {
-          if (e.key === "-" || e.key === "+" || e.key === "e" || e.key === "E") e.preventDefault()
+          if (e.key === "-" || e.key === "+" || e.key === "e" || e.key === "E") {
+            e.preventDefault()
+          }
+          if (e.key === "Enter") {
+            e.currentTarget.blur()
+          }
         }}
         className={`text-right tabular-nums ${accentVar ? "pl-7" : ""} ${suffix ? "pr-7" : ""}`}
       />
@@ -181,7 +217,8 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
         <CardHeader>
           <CardTitle className="font-heading text-lg font-semibold tracking-tight">General</CardTitle>
           <CardDescription>
-            Retención sobre el bruto y puesto preseleccionado al registrar un día.
+            Retención por defecto (también editable en Liquidación) y puesto
+            preseleccionado al registrar un día.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-6">

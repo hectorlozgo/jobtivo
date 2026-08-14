@@ -9,6 +9,7 @@ import { WeekView } from '@/components/week-view'
 import { DayEditor } from '@/components/day-editor'
 import { SettingsPanel } from '@/components/settings-panel'
 import { SummaryCards } from '@/components/summary-cards'
+import { LiquidationPanel } from '@/components/liquidation-panel'
 import { YearChart } from '@/components/year-chart'
 import { summarize } from '@/lib/calc'
 import { buildExport, exportCsv, exportExcel, exportPdf } from '@/lib/export'
@@ -38,13 +39,14 @@ import {
   FileSpreadsheet,
   FileText,
   FileType,
+  Receipt,
   SlidersHorizontal
 } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
 import { UserMenu } from './user-menu'
 
 type ViewMode = 'mes' | 'semana' | 'dia'
-type Tab = 'calendario' | 'tarifas'
+type Tab = 'calendario' | 'tarifas' | 'liquidacion'
 
 function emptyEntry(iso: string, settings: Settings): DayEntry {
   return {
@@ -52,7 +54,7 @@ function emptyEntry(iso: string, settings: Settings): DayEntry {
     category: settings.defaultCategory,
     hours: emptyHours(settings.hourTypes),
     breakApplied: settings.applyBreakByDefault,
-    breakMinutes: settings.breakMinutes,
+    breakMinutes: settings.breakMinutes
   }
 }
 
@@ -112,7 +114,7 @@ export function WorkTracker() {
         category: template.category,
         hours: { ...template.hours },
         breakApplied: template.breakApplied,
-        breakMinutes: template.breakMinutes,
+        breakMinutes: template.breakMinutes
       })
     }
     void saveMany(entries)
@@ -142,6 +144,18 @@ export function WorkTracker() {
   }, [data.entries, view, cursor, selectedISO])
 
   const summary = useMemo(() => summarize(periodEntries, settings), [periodEntries, settings])
+
+  const monthEntries = useMemo(() => {
+    const all = Object.values(data.entries)
+    const start = startOfMonth(cursor)
+    const end = endOfMonth(cursor)
+    return all.filter((e) => {
+      const d = fromISO(e.date)
+      return d >= start && d <= end
+    })
+  }, [data.entries, cursor])
+
+  const liquidacionSummary = useMemo(() => summarize(monthEntries, settings), [monthEntries, settings])
 
   function navigate(dir: -1 | 1) {
     if (view === 'mes') {
@@ -206,9 +220,7 @@ export function WorkTracker() {
               <Clock className="size-5" />
             </span>
             <div>
-              <h1 className="font-heading text-xl font-semibold tracking-tight text-balance sm:text-2xl">
-                Jobtime
-              </h1>
+              <h1 className="font-heading text-xl font-semibold tracking-tight text-balance sm:text-2xl">Jobtime</h1>
               <p className="text-sm text-muted-foreground">
                 {settings.categories.map((c) => c.short || c.name).join(' · ') || 'Puestos y tarifas'}
               </p>
@@ -248,20 +260,35 @@ export function WorkTracker() {
               <CalendarDays className="size-4" />
               Calendario
             </TabsTrigger>
+            <TabsTrigger value="liquidacion" className="rounded-lg px-3">
+              <Receipt className="size-4" />
+              Liquidación
+            </TabsTrigger>
             <TabsTrigger value="tarifas" className="rounded-lg px-3">
               <SlidersHorizontal className="size-4" />
-              Tarifas y retención
+              Tarifas
             </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
       {tab === 'tarifas' ? (
-        <div className="animate-fade-up">
+        <div key="tarifas" className="animate-fade-up stagger-2">
           <SettingsPanel settings={settings} onChange={(s) => void saveSettings(s)} />
         </div>
+      ) : tab === 'liquidacion' ? (
+        <div key="liquidacion" className="animate-fade-up stagger-2">
+          <LiquidationPanel
+            summary={liquidacionSummary}
+            settings={settings}
+            periodLabel={monthName(cursor)}
+            onChangeSettings={(s) => void saveSettings(s)}
+            onNavigate={(dir) => setCursor((c) => addMonths(c, dir))}
+            onToday={goToday}
+          />
+        </div>
       ) : (
-        <div className="animate-fade-up stagger-2 flex flex-col gap-6 lg:gap-7">
+        <div key="calendario" className="animate-fade-up stagger-2 flex flex-col gap-6 lg:gap-7">
           <div className="surface-panel flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
               <Tabs value={view} onValueChange={(v) => setView(v as ViewMode)}>
@@ -369,6 +396,10 @@ export function WorkTracker() {
         <Button variant="ghost" size="xs" onClick={() => goToTab('tarifas')} className="rounded-lg">
           <SlidersHorizontal className="size-3.5" />
           Tarifas
+        </Button>
+        <Button variant="ghost" size="xs" onClick={() => goToTab('liquidacion')} className="rounded-lg">
+          <Receipt className="size-3.5" />
+          Liquidación
         </Button>
         <Button variant="ghost" size="xs" onClick={goToYearChart} className="rounded-lg">
           <BarChart3 className="size-3.5" />

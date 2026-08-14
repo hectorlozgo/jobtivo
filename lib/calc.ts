@@ -122,16 +122,41 @@ export function entryTotals(entry: DayEntry, settings: Settings): EntryTotals {
 export interface PeriodSummary {
   totalHours: number
   hoursByType: Record<string, number>
+  /** Bruto estimado por tipo de hora. */
+  grossByType: Record<string, number>
   gross: number
   taxAmount: number
+  /** Cotización SS trabajador estimada (0 si no aplica). */
+  socialSecurityAmount: number
   net: number
   days: number
+}
+
+/** Deducciones orientativas sobre un bruto. */
+export function estimateDeductions(
+  gross: number,
+  settings: Pick<
+    Settings,
+    "taxPercent" | "socialSecurityPercent" | "applySocialSecurity"
+  >,
+): { taxAmount: number; socialSecurityAmount: number; net: number } {
+  const taxAmount = round2(gross * (settings.taxPercent / 100))
+  const socialSecurityAmount =
+    settings.applySocialSecurity && settings.socialSecurityPercent > 0
+      ? round2(gross * (settings.socialSecurityPercent / 100))
+      : 0
+  const net = round2(gross - taxAmount - socialSecurityAmount)
+  return { taxAmount, socialSecurityAmount, net }
 }
 
 // Resumen agregado de un conjunto de registros, aplicando la retención.
 export function summarize(entries: DayEntry[], settings: Settings): PeriodSummary {
   const hoursByType: Record<string, number> = {}
-  for (const { id } of settings.hourTypes) hoursByType[id] = 0
+  const grossByType: Record<string, number> = {}
+  for (const { id } of settings.hourTypes) {
+    hoursByType[id] = 0
+    grossByType[id] = 0
+  }
 
   let totalHours = 0
   let gross = 0
@@ -142,19 +167,28 @@ export function summarize(entries: DayEntry[], settings: Settings): PeriodSummar
     if (t.totalHours > 0 || t.grossHours > 0) days += 1
     totalHours += t.totalHours
     gross += t.gross
+    const rateSet = settings.rates[entry.category] ?? {}
     for (const { id } of settings.hourTypes) {
-      hoursByType[id] = round2((hoursByType[id] ?? 0) + (t.hoursByType[id] ?? 0))
+      const h = t.hoursByType[id] ?? 0
+      hoursByType[id] = round2((hoursByType[id] ?? 0) + h)
+      grossByType[id] = round2(
+        (grossByType[id] ?? 0) + h * (rateSet[id] ?? 0),
+      )
     }
   }
 
-  const taxAmount = round2(gross * (settings.taxPercent / 100))
-  const net = round2(gross - taxAmount)
+  const { taxAmount, socialSecurityAmount, net } = estimateDeductions(
+    gross,
+    settings,
+  )
 
   return {
     totalHours: round2(totalHours),
     hoursByType,
+    grossByType,
     gross: round2(gross),
     taxAmount,
+    socialSecurityAmount,
     net,
     days,
   }

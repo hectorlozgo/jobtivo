@@ -236,6 +236,14 @@ export function sanitizeSettings(input: unknown): Settings {
       obj.applyBreakByDefault,
       defaults.applyBreakByDefault,
     ),
+    socialSecurityPercent:
+      obj.socialSecurityPercent === undefined
+        ? defaults.socialSecurityPercent
+        : clampPercent(obj.socialSecurityPercent),
+    applySocialSecurity: asBoolean(
+      obj.applySocialSecurity,
+      defaults.applySocialSecurity,
+    ),
   }
 }
 

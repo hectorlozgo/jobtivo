@@ -30,6 +30,13 @@ export interface Settings {
   breakMinutes: number
   /** Si los días nuevos arrancan con el descanso marcado. */
   applyBreakByDefault: boolean
+  /**
+   * Cotización SS trabajador estimada (% sobre bruto).
+   * Orientativa; no sustituye la nómina real.
+   */
+  socialSecurityPercent: number
+  /** Si se resta la SS estimada al calcular el neto. */
+  applySocialSecurity: boolean
 }
 
 export interface DayEntry {
@@ -55,6 +62,15 @@ export const MAX_BREAK_MINUTES = 180
 export const MAX_CATEGORIES = 20
 export const MAX_HOUR_TYPES = 12
 export const MAX_CATALOG_NAME = 40
+/** Contingencias comunes trabajador (orientativo España). */
+export const DEFAULT_SS_PERCENT = 6.35
+
+/** Presets habituales de retención IRPF en contratos temporales / ETT. */
+export const IRPF_PRESETS = [
+  { label: "2 %", value: 2 },
+  { label: "15 %", value: 15 },
+  { label: "19 %", value: 19 },
+] as const
 
 /** Preset ETT logística (España): valor por defecto y plantilla de migración. */
 export const ETT_LOGISTICS_PRESET: Settings = {
@@ -76,6 +92,8 @@ export const ETT_LOGISTICS_PRESET: Settings = {
   defaultCategory: "G1",
   breakMinutes: DEFAULT_BREAK_MINUTES,
   applyBreakByDefault: false,
+  socialSecurityPercent: DEFAULT_SS_PERCENT,
+  applySocialSecurity: false,
   rates: {
     G1: { normal: 12, extra: 18, festiva: 22, nocturna: 16 },
     G2: { normal: 15, extra: 22, festiva: 27, nocturna: 19 },

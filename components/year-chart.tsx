@@ -8,7 +8,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
-import { entryTotals, formatMoney, round2 } from "@/lib/calc"
+import { entryTotals, estimateDeductions, formatMoney, round2 } from "@/lib/calc"
 import { type DayEntry, type Settings } from "@/lib/types"
 import { fromISO } from "@/lib/dates"
 
@@ -40,7 +40,7 @@ export function YearChart({ year, entries, settings }: YearChartProps) {
       const d = fromISO(entry.date)
       if (d.getFullYear() !== year) continue
       const { gross, totalHours: h } = entryTotals(entry, settings)
-      const net = gross - gross * (settings.taxPercent / 100)
+      const { net } = estimateDeductions(gross, settings)
       const m = d.getMonth()
       months[m].bruto = round2(months[m].bruto + gross)
       months[m].neto = round2(months[m].neto + net)
