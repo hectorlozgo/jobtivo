@@ -17,13 +17,25 @@ export function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100
 }
 
+function hoursToHM(hours: number): { h: number; m: number } {
+  const totalMinutes = Math.round(round2(hours) * 60)
+  return {
+    h: Math.floor(totalMinutes / 60),
+    m: Math.abs(totalMinutes % 60),
+  }
+}
+
 /** Formatea horas decimales como "7h 40m" o "8 h". */
 export function formatDurationHours(hours: number): string {
-  const totalMinutes = Math.round(round2(hours) * 60)
-  const h = Math.floor(totalMinutes / 60)
-  const m = Math.abs(totalMinutes % 60)
+  const { h, m } = hoursToHM(hours)
   if (m === 0) return `${h} h`
   return `${h}h ${m}m`
+}
+
+/** Formatea horas decimales como "7:40" o "8:00". */
+export function formatHoursClock(hours: number): string {
+  const { h, m } = hoursToHM(hours)
+  return `${h}:${String(m).padStart(2, "0")}`
 }
 
 function sumHours(hours: Record<string, number>, typeIds: string[]): number {
@@ -33,7 +45,7 @@ function sumHours(hours: Record<string, number>, typeIds: string[]): number {
 }
 
 /**
- * Horas cobrables por tipo: resta el descanso de `settings.breakMinutes`
+ * Horas cobrables por tipo: resta el descanso del día (`entry.breakMinutes`)
  * empezando por el primer tipo de hora y siguiendo el orden del catálogo.
  */
 function billableHours(
@@ -44,7 +56,10 @@ function billableHours(
   const hours: Record<string, number> = {}
   for (const id of typeIds) hours[id] = entry.hours[id] ?? 0
 
-  const configured = Math.max(0, settings.breakMinutes ?? 0)
+  const configured = Math.max(
+    0,
+    entry.breakMinutes ?? settings.breakMinutes ?? 0,
+  )
 
   if (!entry.breakApplied || configured <= 0) {
     return { hours, breakMinutesApplied: 0 }

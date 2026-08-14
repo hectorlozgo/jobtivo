@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Entry" ADD COLUMN "breakMinutes" INTEGER NOT NULL DEFAULT 20;

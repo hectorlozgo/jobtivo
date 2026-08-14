@@ -119,11 +119,17 @@ export function sanitizeEntry(
       : categoryRaw
 
   const allowedIds = settings?.hourTypes.map((t) => t.id)
+  const defaultBreak =
+    settings?.breakMinutes ?? DEFAULT_DATA.settings.breakMinutes
   return {
     date: e.date,
     category,
     hours: sanitizeHours(e.hours, allowedIds),
     breakApplied: asBoolean(e.breakApplied, false),
+    breakMinutes:
+      e.breakMinutes === undefined
+        ? defaultBreak
+        : clampBreakMinutes(e.breakMinutes),
   }
 }
 

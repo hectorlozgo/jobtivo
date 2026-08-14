@@ -62,6 +62,8 @@ model Entry {
   /** Mapa tipoHora → horas (JSON). */
   hours        Json
   breakApplied Boolean @default(false)
+  /** Minutos de descanso del día (editable por el usuario). */
+  breakMinutes Int     @default(20)
   user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, date])

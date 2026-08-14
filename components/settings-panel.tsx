@@ -349,12 +349,13 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
         <CardHeader>
           <CardTitle className="font-heading text-lg font-semibold tracking-tight">Descanso</CardTitle>
           <CardDescription>
-            Minutos que se restan de la jornada bruta cuando marcas el descanso en un día.
+            Valor por defecto de minutos al marcar descanso en un día. Cada día
+            puede ajustarlo por separado.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap items-end gap-6">
           <div className="flex max-w-40 flex-col gap-1.5">
-            <Label htmlFor="break-minutes">Duración (min)</Label>
+            <Label htmlFor="break-minutes">Duración por defecto (min)</Label>
             <NumberField
               id="break-minutes"
               value={settings.breakMinutes}
@@ -376,9 +377,9 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
               className="mt-0.5 size-4 shrink-0 accent-primary"
             />
             <span className="flex flex-col gap-0.5">
-              <span className="text-sm font-medium">Aplicar por defecto</span>
+              <span className="text-sm font-medium">Marcar por defecto</span>
               <span className="text-xs text-muted-foreground">
-                Los días nuevos empiezan con el descanso marcado.
+                Los días nuevos empiezan con el descanso ya marcado.
               </span>
             </span>
           </label>

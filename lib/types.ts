@@ -37,7 +37,10 @@ export interface DayEntry {
   category: string
   /** Horas brutas por id de HourType. */
   hours: Record<string, number>
+  /** Si el usuario marca descanso ese día. */
   breakApplied: boolean
+  /** Minutos de descanso de ese día (editable; por defecto settings.breakMinutes). */
+  breakMinutes: number
 }
 
 export interface AppData {
@@ -72,7 +75,7 @@ export const ETT_LOGISTICS_PRESET: Settings = {
   ],
   defaultCategory: "G1",
   breakMinutes: DEFAULT_BREAK_MINUTES,
-  applyBreakByDefault: true,
+  applyBreakByDefault: false,
   rates: {
     G1: { normal: 12, extra: 18, festiva: 22, nocturna: 16 },
     G2: { normal: 15, extra: 22, festiva: 27, nocturna: 19 },

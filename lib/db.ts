@@ -20,6 +20,7 @@ type MemoryEntryRecord = {
   category: string
   hours: Record<string, number>
   breakApplied: boolean
+  breakMinutes: number
 }
 
 type MemoryDb = {
@@ -136,7 +137,8 @@ export function createMemoryDb(): MemoryDb {
             date,
             category: e.category,
             hours: { ...e.hours },
-            breakApplied: Boolean(e.breakApplied)
+            breakApplied: Boolean(e.breakApplied),
+            breakMinutes: e.breakMinutes ?? state.settings.breakMinutes,
           }
         })
       },
@@ -152,7 +154,11 @@ export function createMemoryDb(): MemoryDb {
           date,
           category: String(source.category ?? state.settings.defaultCategory),
           hours: sanitizeHours(source.hours),
-          breakApplied: Boolean(source.breakApplied)
+          breakApplied: Boolean(source.breakApplied),
+          breakMinutes:
+            typeof source.breakMinutes === 'number'
+              ? source.breakMinutes
+              : state.settings.breakMinutes,
         }
 
         state.entries[date] = entry
@@ -161,7 +167,8 @@ export function createMemoryDb(): MemoryDb {
           date,
           category: entry.category,
           hours: { ...entry.hours },
-          breakApplied: entry.breakApplied
+          breakApplied: entry.breakApplied,
+          breakMinutes: entry.breakMinutes,
         }
       },
       async deleteMany(args) {

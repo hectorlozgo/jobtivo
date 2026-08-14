@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { type DayEntry, type Settings } from '@/lib/types'
-import { entryTotals, formatMoney } from '@/lib/calc'
+import { entryTotals, formatHoursClock, formatMoney } from '@/lib/calc'
 import { hourColorVar } from '@/lib/hour-colors'
 import { addMonths, isToday, monthGridDays, monthOnlyName, toISO, weekdayShort } from '@/lib/dates'
 
@@ -325,7 +325,7 @@ function MonthGrid({
             onClick={() => onSelect(iso)}
             tabIndex={inert ? -1 : undefined}
             aria-pressed={selected}
-            aria-label={`Día ${day.getDate()}${totals && totals.totalHours > 0 ? `, ${totals.totalHours} horas` : ''}`}
+            aria-label={`Día ${day.getDate()}${totals && totals.totalHours > 0 ? `, ${formatHoursClock(totals.totalHours)}` : ''}`}
             className={`group flex min-h-[4.75rem] flex-col gap-1 border-b border-r border-border/50 p-1.5 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:min-h-24 sm:p-2 ${
               inMonth ? 'hover:bg-accent/45' : 'bg-muted/25 text-muted-foreground hover:bg-muted/40'
             } ${selected ? 'bg-accent/55 ring-2 ring-inset ring-primary' : ''} ${
@@ -355,7 +355,7 @@ function MonthGrid({
                     />
                   ))}
                 </span>
-                <span className="text-[11px] font-semibold tabular-nums leading-none">{totals!.totalHours} h</span>
+                <span className="text-[11px] font-semibold tabular-nums leading-none">{formatHoursClock(totals!.totalHours)}</span>
                 <span className="hidden text-[11px] tabular-nums leading-none text-primary sm:block">
                   {money(totals!.gross)}
                 </span>

@@ -52,6 +52,7 @@ function emptyEntry(iso: string, settings: Settings): DayEntry {
     category: settings.defaultCategory,
     hours: emptyHours(settings.hourTypes),
     breakApplied: settings.applyBreakByDefault,
+    breakMinutes: settings.breakMinutes,
   }
 }
 
@@ -111,6 +112,7 @@ export function WorkTracker() {
         category: template.category,
         hours: { ...template.hours },
         breakApplied: template.breakApplied,
+        breakMinutes: template.breakMinutes,
       })
     }
     void saveMany(entries)

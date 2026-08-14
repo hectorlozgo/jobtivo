@@ -1,7 +1,7 @@
 "use client"
 
 import { type DayEntry, type Settings, findCategory } from "@/lib/types"
-import { entryTotals, formatMoney } from "@/lib/calc"
+import { entryTotals, formatHoursClock, formatMoney } from "@/lib/calc"
 import { hourColorVar } from "@/lib/hour-colors"
 import { isToday, toISO, weekDays } from "@/lib/dates"
 
@@ -63,7 +63,7 @@ export function WeekView({ cursor, entries, settings, selectedISO, onSelect }: W
               {hasHours ? (
                 <>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold tabular-nums">{totals!.totalHours} h</span>
+                    <span className="text-sm font-semibold tabular-nums">{formatHoursClock(totals!.totalHours)}</span>
                     {category && (
                       <span className="rounded-md bg-secondary px-1.5 py-0.5 text-[11px] font-medium text-secondary-foreground">
                         {category.short}
@@ -85,7 +85,7 @@ export function WeekView({ cursor, entries, settings, selectedISO, onSelect }: W
                               backgroundColor: `var(${hourColorVar(t.id, settings.hourTypes)})`,
                             }}
                           />
-                          {t.label} {totals!.hoursByType[t.id]}h
+                          {t.label} {formatHoursClock(totals!.hoursByType[t.id] ?? 0)}
                         </span>
                       ))}
                     {entry!.breakApplied && totals!.breakMinutesApplied > 0 && (

@@ -61,7 +61,8 @@ export async function getEntries(
         date: true,
         category: true,
         hours: true,
-        breakApplied: true
+        breakApplied: true,
+        breakMinutes: true,
       }
     })
 
@@ -72,7 +73,8 @@ export async function getEntries(
           date: row.date,
           category: row.category,
           hours: row.hours,
-          breakApplied: row.breakApplied
+          breakApplied: row.breakApplied,
+          breakMinutes: row.breakMinutes,
         },
         resolved,
       )
@@ -101,12 +103,14 @@ export async function upsertEntry(userId: string, input: unknown): Promise<DayEn
         date: entry.date,
         category: entry.category,
         hours: asJson(entry.hours),
-        breakApplied: entry.breakApplied
+        breakApplied: entry.breakApplied,
+        breakMinutes: entry.breakMinutes,
       },
       update: {
         category: entry.category,
         hours: asJson(entry.hours),
-        breakApplied: entry.breakApplied
+        breakApplied: entry.breakApplied,
+        breakMinutes: entry.breakMinutes,
       }
     })
     return entry
