@@ -14,8 +14,10 @@ export const authConfig = {
       const { pathname } = request.nextUrl
       const isLoggedIn = !!auth?.user
 
-      // Las APIs de datos responden 401 JSON vía requireUserId (sin redirect HTML).
       if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth')) {
+        if (!isLoggedIn) {
+          return Response.json({ error: 'No autenticado' }, { status: 401 })
+        }
         return true
       }
 

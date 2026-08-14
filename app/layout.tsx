@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { Figtree, Geist_Mono, Outfit } from 'next/font/google'
 import { AuthProvider } from './providers/auth-provider'
 import { ThemeProvider } from './providers/theme-provider'
+import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
 const outfit = Outfit({
@@ -68,6 +69,7 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <ThemeProvider>
           <AuthProvider>{children}</AuthProvider>
+          <Toaster />
         </ThemeProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

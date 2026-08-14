@@ -62,6 +62,14 @@ export const MAX_BREAK_MINUTES = 180
 export const MAX_CATEGORIES = 20
 export const MAX_HOUR_TYPES = 12
 export const MAX_CATALOG_NAME = 40
+/** Tope de €/h al sanear tarifas (evita JSON/números enormes). */
+export const MAX_RATE = 10_000
+/** Máximo de días en un POST bulk (un año). */
+export const MAX_BULK_ENTRIES = 366
+export const MIN_PASSWORD_LENGTH = 8
+export const MAX_PASSWORD_LENGTH = 72
+export const MAX_NAME_LENGTH = 80
+export const MAX_EMAIL_LENGTH = 254
 /** Contingencias comunes trabajador (orientativo España). */
 export const DEFAULT_SS_PERCENT = 6.35
 

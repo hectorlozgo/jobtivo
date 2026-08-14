@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,19 +40,21 @@ export function RegisterForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError(null)
 
     if (password.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres')
+      toast.error('La contraseña debe tener al menos 8 caracteres')
+      return
+    }
+    if (password.length > 72) {
+      toast.error('La contraseña no puede superar 72 caracteres')
       return
     }
     if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden')
+      toast.error('Las contraseñas no coinciden')
       return
     }
 
@@ -64,7 +67,7 @@ export function RegisterForm() {
       })
       const data = (await res.json()) as { error?: string }
       if (!res.ok) {
-        setError(data.error ?? 'No se pudo completar el registro')
+        toast.error(data.error ?? 'No se pudo completar el registro')
         return
       }
 
@@ -74,15 +77,16 @@ export function RegisterForm() {
         redirect: false
       })
       if (result?.error) {
-        setError('Cuenta creada, pero no se pudo iniciar sesión. Prueba a entrar manualmente.')
+        toast.success('Cuenta creada. Entra con tu email y contraseña.')
         router.push('/login')
         return
       }
 
+      toast.success('Cuenta creada')
       router.push('/')
       router.refresh()
     } catch {
-      setError('No se pudo completar el registro')
+      toast.error('No se pudo completar el registro')
     } finally {
       setLoading(false)
     }
@@ -111,6 +115,7 @@ export function RegisterForm() {
               type="text"
               autoComplete="name"
               required
+              maxLength={80}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="h-10 rounded-xl"
@@ -123,6 +128,7 @@ export function RegisterForm() {
               type="email"
               autoComplete="email"
               required
+              maxLength={254}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="h-10 rounded-xl"
@@ -136,6 +142,7 @@ export function RegisterForm() {
               autoComplete="new-password"
               required
               minLength={8}
+              maxLength={72}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="h-10 rounded-xl"
@@ -149,14 +156,12 @@ export function RegisterForm() {
               autoComplete="new-password"
               required
               minLength={8}
+              maxLength={72}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="h-10 rounded-xl"
             />
           </div>
-          {error && (
-            <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
-          )}
           <Button type="submit" disabled={loading} className="mt-1 h-10 w-full rounded-xl">
             {loading ? 'Creando cuenta…' : 'Registrarme'}
           </Button>

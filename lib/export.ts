@@ -1,6 +1,6 @@
 "use client"
 
-// Exportación de registros a CSV, Excel (xlsx) y PDF.
+// Exportación de registros a CSV y PDF.
 // Todo se genera en el cliente a partir de datos ya saneados.
 
 import { entryTotals, summarize, round2, formatMoney } from "@/lib/calc"
@@ -118,8 +118,13 @@ function formatExportNumber(
   return round2(value).toFixed(2)
 }
 
+function neutralizeFormula(value: string): string {
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value
+}
+
 function escapeCsv(value: string): string {
-  return /[",\n;]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
+  const safe = neutralizeFormula(value)
+  return /[",\n;]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe
 }
 
 // ---- CSV ----
@@ -139,34 +144,6 @@ export function exportCsv(bundle: ExportBundle) {
     type: "text/csv;charset=utf-8;",
   })
   download(blob, `${bundle.filenameBase}.csv`)
-}
-
-// ---- Excel (xlsx) ----
-export async function exportExcel(bundle: ExportBundle) {
-  const XLSX = await import("xlsx")
-  const aoa: (string | number)[][] = [
-    [bundle.title],
-    [],
-    bundle.headers,
-    ...bundle.rows,
-    bundle.totalsRow,
-    [],
-    ["Resumen"],
-    ...bundle.summaryRows,
-  ]
-  const ws = XLSX.utils.aoa_to_sheet(aoa)
-  ws["!cols"] = bundle.headers.map((_, i) => ({
-    wch: i === 0 || i === 1 ? 22 : 12,
-  }))
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, "Horas")
-  const out = XLSX.write(wb, { bookType: "xlsx", type: "array" })
-  download(
-    new Blob([out], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    }),
-    `${bundle.filenameBase}.xlsx`,
-  )
 }
 
 // ---- PDF ----

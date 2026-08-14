@@ -109,6 +109,11 @@ export function createMemoryDb(): MemoryDb {
         return null
       },
       async create(args) {
+        for (const existing of memoryUsers.values()) {
+          if (existing.email === args.data.email) {
+            throw Object.assign(new Error("Unique constraint failed"), { code: "P2002" })
+          }
+        }
         const id = `mem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
         const user = {
           id,
@@ -203,11 +208,45 @@ export function createMemoryDb(): MemoryDb {
   return db
 }
 
+export class DatabaseUnavailableError extends Error {
+  constructor(cause?: unknown) {
+    super("Base de datos no disponible")
+    this.name = "DatabaseUnavailableError"
+    if (cause !== undefined) {
+      this.cause = cause
+    }
+  }
+}
+
+export function isDatabaseUnavailable(error: unknown): boolean {
+  if (error instanceof DatabaseUnavailableError) return true
+  const code =
+    typeof error === "object" && error !== null && "code" in error
+      ? String((error as { code: unknown }).code)
+      : ""
+  if (["P1000", "P1001", "P1002", "P1008", "P1017", "P2024"].includes(code)) {
+    return true
+  }
+  const msg = error instanceof Error ? error.message : String(error)
+  return /DATABASE_URL no configurada|can't reach database|ECONNREFUSED|ECONNRESET|connection terminated|timeout exceeded|Connection.*refused/i.test(
+    msg,
+  )
+}
+
+export function isUniqueConstraintError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code: unknown }).code === "P2002"
+  )
+}
+
 export function getDb(): PrismaClient {
   const databaseUrl = process.env.DATABASE_URL ?? process.env.PRISMA_DATABASE_URL ?? process.env.POSTGRES_URL ?? ''
 
   if (!databaseUrl) {
-    throw new Error('DATABASE_URL no configurada')
+    throw new DatabaseUnavailableError()
   }
 
   if (globalThis.__prisma) {
@@ -225,8 +264,11 @@ export function getDb(): PrismaClient {
   return client
 }
 
-/** Cliente Prisma o memoria aislada por usuario (solo desarrollo sin DB). */
+/** Cliente Prisma. En desarrollo, memoria si no hay DATABASE_URL. En producción nunca cae a memoria. */
 export function getDbOrMemory(): PrismaClient | MemoryDb {
+  if (process.env.NODE_ENV === 'production') {
+    return getDb()
+  }
   try {
     return getDb()
   } catch {

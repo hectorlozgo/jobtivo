@@ -39,9 +39,10 @@ Usa Postgres local en `.env.local`. La `DATABASE_URL` de producción solo debe e
 
 ## Auth
 
-- Registro y login con email/contraseña
+- Registro y login con email/contraseña (sin verificación de email; Google no enlaza cuentas por email no verificado)
 - Login con Google (si configuraste OAuth)
 - Las APIs `/api/data`, `/api/entries` y `/api/settings` exigen sesión y filtran por `userId`
+- En producción hace falta `DATABASE_URL`; si Postgres no responde las APIs devuelven 503 (no hay fallback a memoria)
 
 ## Learn More
 

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 
-import { UnauthorizedError, requireUserId, unauthorizedResponse } from '@/lib/auth-helpers'
+import { handleRouteError, requireUserId } from '@/lib/auth-helpers'
 import { deleteEntry, upsertEntry, upsertMany } from '@/lib/repo'
+import { MAX_BULK_ENTRIES } from '@/lib/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -11,6 +12,12 @@ export async function POST(request: Request) {
     const userId = await requireUserId()
     const body = await request.json()
     if (Array.isArray(body?.bulk)) {
+      if (body.bulk.length > MAX_BULK_ENTRIES) {
+        return NextResponse.json(
+          { error: `Máximo ${MAX_BULK_ENTRIES} entradas por lote` },
+          { status: 400 },
+        )
+      }
       const saved = await upsertMany(userId, body.bulk)
       return NextResponse.json({ saved })
     }
@@ -20,9 +27,7 @@ export async function POST(request: Request) {
     }
     return NextResponse.json(entry)
   } catch (err) {
-    if (err instanceof UnauthorizedError) return unauthorizedResponse()
-    console.error('[entries] POST error:', (err as Error).message)
-    return NextResponse.json({ error: 'No se pudo guardar la entrada' }, { status: 500 })
+    return handleRouteError(err, 'No se pudo guardar la entrada')
   }
 }
 
@@ -36,8 +41,6 @@ export async function DELETE(request: Request) {
     }
     return NextResponse.json({ ok: true })
   } catch (err) {
-    if (err instanceof UnauthorizedError) return unauthorizedResponse()
-    console.error('[entries] DELETE error:', (err as Error).message)
-    return NextResponse.json({ error: 'No se pudo eliminar' }, { status: 500 })
+    return handleRouteError(err, 'No se pudo eliminar')
   }
 }

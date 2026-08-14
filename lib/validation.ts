@@ -14,8 +14,13 @@ import {
   MAX_BREAK_MINUTES,
   MAX_CATALOG_NAME,
   MAX_CATEGORIES,
+  MAX_EMAIL_LENGTH,
   MAX_HOUR_TYPES,
   MAX_HOURS_PER_TYPE,
+  MAX_NAME_LENGTH,
+  MAX_PASSWORD_LENGTH,
+  MAX_RATE,
+  MIN_PASSWORD_LENGTH,
 } from "./types"
 
 // Convierte cualquier valor a un número de horas válido: 0..MAX, sin negativos,
@@ -35,12 +40,36 @@ export function clampPercent(value: unknown): number {
   return Math.round(clamped * 100) / 100
 }
 
-// Tarifa válida >= 0.
+// Tarifa válida 0..MAX_RATE.
 export function clampRate(value: unknown): number {
   const n = typeof value === "number" ? value : Number.parseFloat(String(value))
   if (!Number.isFinite(n)) return 0
-  const clamped = Math.max(n, 0)
+  const clamped = Math.min(Math.max(n, 0), MAX_RATE)
   return Math.round(clamped * 100) / 100
+}
+
+const EMAIL_RE = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+
+export function normalizeEmail(value: unknown): string | null {
+  if (typeof value !== "string") return null
+  const email = value.trim().toLowerCase()
+  if (email.length < 3 || email.length > MAX_EMAIL_LENGTH) return null
+  if (!EMAIL_RE.test(email)) return null
+  return email
+}
+
+export function normalizeName(value: unknown): string | null {
+  if (typeof value !== "string") return null
+  const name = value.trim().slice(0, MAX_NAME_LENGTH)
+  return name.length > 0 ? name : null
+}
+
+export function isValidPassword(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length >= MIN_PASSWORD_LENGTH &&
+    value.length <= MAX_PASSWORD_LENGTH
+  )
 }
 
 /** Minutos de descanso: entero 0..MAX_BREAK_MINUTES. */

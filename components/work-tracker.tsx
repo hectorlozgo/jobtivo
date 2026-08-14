@@ -12,7 +12,7 @@ import { SummaryCards } from '@/components/summary-cards'
 import { LiquidationPanel } from '@/components/liquidation-panel'
 import { YearChart } from '@/components/year-chart'
 import { summarize } from '@/lib/calc'
-import { buildExport, exportCsv, exportExcel, exportPdf } from '@/lib/export'
+import { buildExport, exportCsv, exportPdf } from '@/lib/export'
 import { useAppData } from '@/lib/use-app-data'
 import { type DayEntry, type Settings, emptyHours } from '@/lib/types'
 import {
@@ -36,7 +36,6 @@ import {
   ChevronRight,
   Clock,
   Download,
-  FileSpreadsheet,
   FileText,
   FileType,
   Receipt,
@@ -236,10 +235,6 @@ export function WorkTracker() {
                 <DropdownMenuItem onClick={() => exportCsv(currentBundle())}>
                   <FileText className="size-4" />
                   CSV
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => void exportExcel(currentBundle())}>
-                  <FileSpreadsheet className="size-4" />
-                  Excel (.xlsx)
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => void exportPdf(currentBundle())}>
                   <FileType className="size-4" />

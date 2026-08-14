@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-import { UnauthorizedError, requireUserId, unauthorizedResponse } from '@/lib/auth-helpers'
+import { handleRouteError, requireUserId } from '@/lib/auth-helpers'
 import { saveSettings } from '@/lib/repo'
 
 export const runtime = 'nodejs'
@@ -13,8 +13,6 @@ export async function PUT(request: Request) {
     const settings = await saveSettings(userId, body)
     return NextResponse.json(settings)
   } catch (err) {
-    if (err instanceof UnauthorizedError) return unauthorizedResponse()
-    console.error('[settings] PUT error:', (err as Error).message)
-    return NextResponse.json({ error: 'Ajustes inválidos' }, { status: 400 })
+    return handleRouteError(err, 'Ajustes inválidos', 400)
   }
 }

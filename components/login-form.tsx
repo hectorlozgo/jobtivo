@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,12 +38,16 @@ export function LoginForm() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const error = new URLSearchParams(window.location.search).get('error')
+    if (!error) return
+    toast.error('No se pudo iniciar sesión con Google')
+  }, [])
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError(null)
     setLoading(true)
     try {
       const result = await signIn('credentials', {
@@ -51,13 +56,13 @@ export function LoginForm() {
         redirect: false
       })
       if (result?.error) {
-        setError('Email o contraseña incorrectos')
+        toast.error('Email o contraseña incorrectos')
         return
       }
       router.push('/')
       router.refresh()
     } catch {
-      setError('No se pudo iniciar sesión')
+      toast.error('No se pudo iniciar sesión')
     } finally {
       setLoading(false)
     }
@@ -86,6 +91,7 @@ export function LoginForm() {
               type="email"
               autoComplete="email"
               required
+              maxLength={254}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="h-10 rounded-xl"
@@ -98,14 +104,12 @@ export function LoginForm() {
               type="password"
               autoComplete="current-password"
               required
+              maxLength={72}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="h-10 rounded-xl"
             />
           </div>
-          {error && (
-            <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
-          )}
           <Button type="submit" disabled={loading} className="mt-1 h-10 w-full rounded-xl">
             {loading ? 'Entrando…' : 'Entrar'}
           </Button>
