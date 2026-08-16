@@ -34,13 +34,13 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Clock,
   Download,
   FileText,
   FileType,
   Receipt,
   SlidersHorizontal
 } from 'lucide-react'
+import { BrandMark } from './brand-mark'
 import { ThemeToggle } from './theme-toggle'
 import { UserMenu } from './user-menu'
 
@@ -190,11 +190,9 @@ export function WorkTracker() {
     return (
       <div className="flex min-h-dvh items-center justify-center px-4">
         <div className="animate-fade-up flex flex-col items-center gap-4">
-          <span className="brand-mark flex size-12 items-center justify-center rounded-2xl text-primary-foreground">
-            <Clock className="size-5" />
-          </span>
+          <BrandMark className="size-12" />
           <div className="flex flex-col items-center gap-2">
-            <p className="font-heading text-base font-semibold">Jobtime</p>
+            <p className="font-heading text-base font-semibold">JOBTIVO</p>
             <div className="h-1 w-28 overflow-hidden rounded-full bg-muted">
               <div className="h-full w-1/2 animate-pulse rounded-full bg-primary/70" />
             </div>
@@ -215,11 +213,9 @@ export function WorkTracker() {
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3.5">
-            <span className="brand-mark flex size-11 items-center justify-center rounded-2xl text-primary-foreground">
-              <Clock className="size-5" />
-            </span>
+            <BrandMark />
             <div>
-              <h1 className="font-heading text-xl font-semibold tracking-tight text-balance sm:text-2xl">Jobtime</h1>
+              <h1 className="font-heading text-xl font-semibold tracking-tight text-balance sm:text-2xl">JOBTIVO</h1>
               <p className="text-sm text-muted-foreground">
                 {settings.categories.map((c) => c.short || c.name).join(' · ') || 'Actividades y tarifas'}
               </p>

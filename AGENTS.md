@@ -1,4 +1,4 @@
-# Jobtime
+# JOBTIVO
 
 App de control de horas: actividades, tipos de hora y tarifas configurables, retención, cotización SS estimada, descanso diario y exportación CSV/PDF. Multi-usuario: cada cuenta tiene su propio dataset. Las cuentas nuevas arrancan con un catálogo genérico (Actividad 1/2, Normal/Extra) que el usuario cambia en Tarifas. En la UI, `categories` se llama «actividades».
 

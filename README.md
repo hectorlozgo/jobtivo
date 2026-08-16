@@ -1,4 +1,4 @@
-# jobtime
+# JOBTIVO
 
 Control de horas con actividades y tipos de hora configurables, tarifas, retención y exportación. Cada usuario tiene sus propios datos tras iniciar sesión.
 

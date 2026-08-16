@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Clock } from 'lucide-react'
+import { BrandMark } from '@/components/brand-mark'
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -96,11 +96,9 @@ export function RegisterForm() {
     <div className="animate-fade-up surface-panel w-full max-w-md overflow-hidden">
       <div className="border-b border-border/60 px-6 py-6">
         <div className="flex items-center gap-3.5">
-          <span className="brand-mark flex size-11 items-center justify-center rounded-2xl text-primary-foreground">
-            <Clock className="size-5" />
-          </span>
+          <BrandMark />
           <div>
-            <p className="font-heading text-xl font-semibold tracking-tight">Jobtime</p>
+            <p className="font-heading text-xl font-semibold tracking-tight">JOBTIVO</p>
             <p className="text-sm text-muted-foreground">Crea tu cuenta privada</p>
           </div>
         </div>

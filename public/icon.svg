@@ -1,13 +1,16 @@
 <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bg" x1="18" y1="12" x2="162" y2="168" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#3DB8A8"/>
-      <stop offset="1" stop-color="#1A5F6E"/>
-    </linearGradient>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#2A4D78"/>
+      <stop offset="100%" stop-color="#0A1628"/>
+    </radialGradient>
   </defs>
   <rect width="180" height="180" rx="40" fill="url(#bg)"/>
-  <circle cx="90" cy="90" r="46" stroke="white" stroke-width="10" stroke-linecap="round"/>
-  <path d="M90 90V58" stroke="white" stroke-width="10" stroke-linecap="round"/>
-  <path d="M90 90L118 78" stroke="white" stroke-width="10" stroke-linecap="round"/>
-  <circle cx="90" cy="90" r="6" fill="white"/>
+  <!-- Anillo de horas / actividades -->
+  <path d="M143.2 99.4A54 54 0 0 1 36.8 99.4" stroke="#5BA8DC" stroke-width="16" stroke-linecap="round"/>
+  <path d="M36.8 80.6A54 54 0 0 1 55.3 48.6" stroke="#EE5B9A" stroke-width="16" stroke-linecap="round"/>
+  <path d="M71.5 39.3A54 54 0 0 1 108.5 39.3" stroke="#F5A623" stroke-width="16" stroke-linecap="round"/>
+  <path d="M124.7 48.6A54 54 0 0 1 143.2 80.6" stroke="#3DDB7D" stroke-width="16" stroke-linecap="round"/>
+  <!-- Check: trabajo completado, con gesto de manecillas -->
+  <path d="M58 94L80 118L122 68" stroke="white" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

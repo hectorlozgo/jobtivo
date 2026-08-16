@@ -84,7 +84,7 @@ export function buildExport(
     totalsRow,
     summaryRows,
     filenameBase: `horas-${slug(periodLabel)}`,
-    title: `Control de horas · ${periodLabel}`,
+    title: `JOBTIVO · Control de horas · ${periodLabel}`,
   }
 }
 
