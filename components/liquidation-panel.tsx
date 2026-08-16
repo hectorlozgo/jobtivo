@@ -11,7 +11,7 @@ import {
 } from "@/lib/calc"
 import { hourColorVar } from "@/lib/hour-colors"
 import {
-  IRPF_PRESETS,
+  TAX_PRESETS,
   type Settings,
   DEFAULT_SS_PERCENT,
 } from "@/lib/types"
@@ -93,14 +93,14 @@ export function LiquidationPanel({
   onToday,
 }: LiquidationPanelProps) {
   const money = (n: number) => formatMoney(n, settings.currency, settings.locale)
-  const taxLabel = settings.taxLabel || "IRPF"
+  const taxLabel = settings.taxLabel || "Retención"
 
   const maxGross = Math.max(
     ...settings.hourTypes.map((t) => summary.grossByType[t.id] ?? 0),
     0.001,
   )
 
-  const isCustomIrpf = !IRPF_PRESETS.some((p) => p.value === settings.taxPercent)
+  const isCustomTax = !TAX_PRESETS.some((p) => p.value === settings.taxPercent)
 
   const typeRows = useMemo(
     () =>
@@ -118,7 +118,7 @@ export function LiquidationPanel({
     onChangeSettings({ ...settings, ...partial })
   }
 
-  function setIrpf(value: number) {
+  function setTaxPercent(value: number) {
     patch({ taxPercent: clampPercent(value) })
   }
 
@@ -180,11 +180,10 @@ export function LiquidationPanel({
             {taxLabel}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Presets habituales en contratos temporales / ETT. El % se guarda en
-            Tarifas.
+            Atajos de retención. El % se guarda en Tarifas.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            {IRPF_PRESETS.map((p) => {
+            {TAX_PRESETS.map((p) => {
               const active = settings.taxPercent === p.value
               return (
                 <Button
@@ -193,7 +192,7 @@ export function LiquidationPanel({
                   size="sm"
                   variant={active ? "default" : "outline"}
                   className="rounded-xl pr-3"
-                  onClick={() => setIrpf(p.value)}
+                  onClick={() => setTaxPercent(p.value)}
                 >
                   {p.label}
                 </Button>
@@ -201,16 +200,16 @@ export function LiquidationPanel({
             })}
             <div className="flex items-center gap-2">
               <Label htmlFor="irpf-custom" className="sr-only">
-                IRPF personalizado
+                Retención personalizada
               </Label>
               <div className="relative w-18">
                 <PercentInput
                   id="irpf-custom"
                   value={settings.taxPercent}
-                  onCommit={setIrpf}
-                  aria-label="Porcentaje IRPF personalizado"
+                  onCommit={setTaxPercent}
+                  aria-label="Porcentaje de retención personalizado"
                   className={`h-8 rounded-xl pr-6 text-right tabular-nums ${
-                    isCustomIrpf ? "border-primary ring-1 ring-primary/30" : ""
+                    isCustomTax ? "border-primary ring-1 ring-primary/30" : ""
                   }`}
                 />
                 <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground">
@@ -249,7 +248,7 @@ export function LiquidationPanel({
               </span>
               <span className="text-xs text-muted-foreground">
                 Estimación orientativa (~{DEFAULT_SS_PERCENT}% contingencias
-                comunes). En ETT a menudo ya va descontada en la liquidación.
+                comunes). Desactívala si ya va descontada en tu liquidación.
               </span>
             </span>
           </label>
@@ -331,9 +330,9 @@ export function LiquidationPanel({
 
       <p className="flex items-start gap-2 rounded-xl border border-border/60 bg-muted/30 px-3.5 py-3 text-xs text-muted-foreground">
         <Info className="mt-0.5 size-3.5 shrink-0" />
-        Estimación orientativa. El IRPF real depende de tu situación fiscal y la
-        SS de bases, convenio y tipo de contrato. Contrasta siempre con tu
-        liquidación oficial.
+        Estimación orientativa. La retención y la SS reales dependen de tu
+        situación fiscal, bases, convenio y tipo de contrato. Contrasta siempre
+        con tu liquidación oficial.
       </p>
     </div>
   )

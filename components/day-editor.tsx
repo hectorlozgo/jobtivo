@@ -79,7 +79,7 @@ export function DayEditor({ dateISO, entry, exists, settings, onSave, onClear, o
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="category">Puesto</Label>
+        <Label htmlFor="category">Actividad</Label>
         <Select
           value={draft.category}
           onValueChange={(v) => {

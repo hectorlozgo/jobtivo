@@ -221,7 +221,7 @@ export function WorkTracker() {
             <div>
               <h1 className="font-heading text-xl font-semibold tracking-tight text-balance sm:text-2xl">Jobtime</h1>
               <p className="text-sm text-muted-foreground">
-                {settings.categories.map((c) => c.short || c.name).join(' · ') || 'Puestos y tarifas'}
+                {settings.categories.map((c) => c.short || c.name).join(' · ') || 'Actividades y tarifas'}
               </p>
             </div>
           </div>

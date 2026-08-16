@@ -179,9 +179,9 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
 
   function addCategory() {
     if (settings.categories.length >= MAX_CATEGORIES) return
-    const id = makeCatalogId("puesto", "Puesto")
+    const id = makeCatalogId("actividad", "Actividad")
     patch({
-      categories: [...settings.categories, { id, name: "Nuevo puesto", short: "N" }],
+      categories: [...settings.categories, { id, name: "Nuevo", short: "N" }],
     })
   }
 
@@ -217,8 +217,8 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
         <CardHeader>
           <CardTitle className="font-heading text-lg font-semibold tracking-tight">General</CardTitle>
           <CardDescription>
-            Retención por defecto (también editable en Liquidación) y puesto
-            preseleccionado al registrar un día.
+            Retención por defecto (también editable en Liquidación) y actividad
+            preseleccionada al registrar un día.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-6">
@@ -241,7 +241,7 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
             />
           </div>
           <div className="flex min-w-52 flex-col gap-1.5">
-            <Label htmlFor="default-category">Puesto predeterminado</Label>
+            <Label htmlFor="default-category">Predeterminado</Label>
             <Select
               value={settings.defaultCategory}
               onValueChange={(v) => {
@@ -265,9 +265,10 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="font-heading text-lg font-semibold tracking-tight">Puestos</CardTitle>
+          <CardTitle className="font-heading text-lg font-semibold tracking-tight">Actividades</CardTitle>
           <CardDescription>
-            Categorías o roles con tarifa propia (máx. {MAX_CATEGORIES}).
+            Lo que cobras con tarifa propia: rol, servicio, cliente… (máx.{" "}
+            {MAX_CATEGORIES}).
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -320,7 +321,7 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
             className="self-start"
           >
             <Plus className="size-4" />
-            Añadir puesto
+            Añadir actividad
           </Button>
         </CardContent>
       </Card>
@@ -329,7 +330,7 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
         <CardHeader>
           <CardTitle className="font-heading text-lg font-semibold tracking-tight">Tipos de hora</CardTitle>
           <CardDescription>
-            Normal, extra, festiva… o los que necesites (máx. {MAX_HOUR_TYPES}).
+            Normal, extra u otros tipos con tarifa propia (máx. {MAX_HOUR_TYPES}).
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -427,7 +428,7 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
         <CardHeader>
           <CardTitle className="font-heading text-lg font-semibold tracking-tight">Tarifas por hora</CardTitle>
           <CardDescription>
-            Precio de cada tipo de hora, independiente por puesto.
+            Precio de cada tipo de hora, independiente por actividad.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">

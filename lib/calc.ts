@@ -89,7 +89,7 @@ function billableHours(
   }
 }
 
-// Importe bruto de un registro diario según la tarifa de su categoría.
+// Importe bruto de un registro diario según la tarifa de su actividad.
 export function entryTotals(entry: DayEntry, settings: Settings): EntryTotals {
   const rateSet = settings.rates[entry.category] ?? {}
   const typeIds = settings.hourTypes.map((t) => t.id)

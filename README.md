@@ -1,6 +1,6 @@
 # jobtime
 
-Control de horas con puestos y tipos de hora configurables, tarifas, retención (p. ej. IRPF) y exportación. Incluye preset ETT por defecto. Cada usuario tiene sus propios datos tras iniciar sesión.
+Control de horas con actividades y tipos de hora configurables, tarifas, retención y exportación. Cada usuario tiene sus propios datos tras iniciar sesión.
 
 ## Desarrollo local
 

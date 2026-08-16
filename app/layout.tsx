@@ -27,7 +27,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Jobtime — Control de horas',
   description:
-    'Registra horas por puesto y tipo, aplica retención y calcula tu cobro por día, semana o mes.',
+    'Registra horas por actividad y tipo, aplica retención y calcula tu cobro por día, semana o mes.',
   icons: {
     icon: [
       {

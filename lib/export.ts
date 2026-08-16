@@ -25,7 +25,7 @@ export function buildExport(
   const hourTypes = settings.hourTypes
   const headers = [
     "Fecha",
-    "Puesto",
+    "Actividad",
     ...hourTypes.map((t) => `${t.label} (h)`),
     "Descanso (min)",
     "Total horas",

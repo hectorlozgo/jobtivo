@@ -10,7 +10,6 @@ import {
   type Rates,
   type Settings,
   DEFAULT_DATA,
-  ETT_LOGISTICS_PRESET,
   MAX_BREAK_MINUTES,
   MAX_CATALOG_NAME,
   MAX_CATEGORIES,
@@ -163,7 +162,7 @@ export function sanitizeEntry(
 }
 
 function sanitizeCategories(input: unknown): Category[] {
-  const fallback = ETT_LOGISTICS_PRESET.categories
+  const fallback = DEFAULT_DATA.settings.categories
   if (!Array.isArray(input) || input.length === 0) return structuredClone(fallback)
 
   const seen = new Set<string>()
@@ -182,7 +181,7 @@ function sanitizeCategories(input: unknown): Category[] {
 }
 
 function sanitizeHourTypes(input: unknown): HourType[] {
-  const fallback = ETT_LOGISTICS_PRESET.hourTypes
+  const fallback = DEFAULT_DATA.settings.hourTypes
   if (!Array.isArray(input) || input.length === 0) return structuredClone(fallback)
 
   const seen = new Set<string>()
@@ -218,6 +217,31 @@ function sanitizeRates(
   return rates
 }
 
+/** JSON legado sin catálogos pero con tarifas en ids G1/G2/G3. */
+function hasLegacyRateIds(rates: unknown): boolean {
+  if (!rates || typeof rates !== "object" || Array.isArray(rates)) return false
+  return ["G1", "G2", "G3"].some((id) => id in rates)
+}
+
+function legacyOrDefaultCategories(rates: unknown): Category[] {
+  if (!hasLegacyRateIds(rates)) return DEFAULT_DATA.settings.categories
+  return [
+    { id: "G1", name: "Actividad 1", short: "G1" },
+    { id: "G2", name: "Actividad 2", short: "G2" },
+    { id: "G3", name: "Actividad 3", short: "G3" },
+  ]
+}
+
+function legacyOrDefaultHourTypes(rates: unknown): HourType[] {
+  if (!hasLegacyRateIds(rates)) return DEFAULT_DATA.settings.hourTypes
+  return [
+    { id: "normal", label: "Normal" },
+    { id: "extra", label: "Extra" },
+    { id: "festiva", label: "Festiva" },
+    { id: "nocturna", label: "Nocturna" },
+  ]
+}
+
 /**
  * Normaliza settings. Acepta el formato antiguo (sin categories/hourTypes, con `irpf`)
  * y lo eleva al modelo genérico.
@@ -226,14 +250,13 @@ export function sanitizeSettings(input: unknown): Settings {
   const obj = (input ?? {}) as Record<string, unknown>
   const defaults = DEFAULT_DATA.settings
 
-  // Formato antiguo: sin catálogos → asumir preset ETT (ids G1/G2/G3 + 4 tipos).
   const hasCatalogs = Array.isArray(obj.categories) || Array.isArray(obj.hourTypes)
   const categories = hasCatalogs
     ? sanitizeCategories(obj.categories)
-    : structuredClone(ETT_LOGISTICS_PRESET.categories)
+    : structuredClone(legacyOrDefaultCategories(obj.rates))
   const hourTypes = hasCatalogs
     ? sanitizeHourTypes(obj.hourTypes)
-    : structuredClone(ETT_LOGISTICS_PRESET.hourTypes)
+    : structuredClone(legacyOrDefaultHourTypes(obj.rates))
 
   const taxPercent =
     obj.taxPercent !== undefined
