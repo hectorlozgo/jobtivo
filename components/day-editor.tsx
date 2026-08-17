@@ -69,7 +69,7 @@ export function DayEditor({ dateISO, entry, exists, settings, onSave, onClear, o
   const dateLabel = formatLongDate(new Date(dateISO + 'T00:00:00'))
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex h-full min-h-0 flex-1 flex-col gap-5">
       <div className="flex flex-col gap-1">
         <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Editor del día</p>
         <h3 className="font-heading text-lg font-semibold capitalize tracking-tight text-pretty">{dateLabel}</h3>
@@ -164,70 +164,72 @@ export function DayEditor({ dateISO, entry, exists, settings, onSave, onClear, o
         </p>
       )}
 
-      <div className="flex items-center justify-between rounded-xl border border-border/70 bg-gradient-to-br from-primary/8 via-transparent to-transparent px-4 py-3.5">
-        <div>
-          <p className="text-xs text-muted-foreground">
-            {totals.breakMinutesApplied > 0 ? 'Horas cobrables' : 'Total del día'}
-          </p>
-          <p className="font-heading text-lg font-semibold tabular-nums">{formatDurationHours(totals.totalHours)}</p>
+      <div className="mt-auto flex flex-col gap-5">
+        <div className="flex items-center justify-between rounded-xl border border-border/70 bg-gradient-to-br from-primary/8 via-transparent to-transparent px-4 py-3.5">
+          <div>
+            <p className="text-xs text-muted-foreground">
+              {totals.breakMinutesApplied > 0 ? 'Horas cobrables' : 'Total del día'}
+            </p>
+            <p className="font-heading text-lg font-semibold tabular-nums">{formatDurationHours(totals.totalHours)}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">Importe bruto</p>
+            <p className="font-heading text-lg font-semibold tabular-nums text-primary">
+              {formatMoney(totals.gross, settings.currency, settings.locale)}
+            </p>
+          </div>
         </div>
-        <div className="text-right">
-          <p className="text-xs text-muted-foreground">Importe bruto</p>
-          <p className="font-heading text-lg font-semibold tabular-nums text-primary">
-            {formatMoney(totals.gross, settings.currency, settings.locale)}
-          </p>
-        </div>
-      </div>
 
-      <Button
-        type="button"
-        onClick={handleSave}
-        disabled={!canSave}
-        className="h-10 justify-center rounded-xl"
-        aria-live="polite"
-      >
-        {!dirty && exists ? (
-          <>
-            <Check className="size-4" />
-            Guardado
-          </>
-        ) : (
-          <>
-            <Save className="size-4" />
-            {exists ? 'Actualizar' : 'Guardar'}
-          </>
-        )}
-      </Button>
-
-      {dirty && (
-        <p className="-mt-2 text-center text-xs text-muted-foreground">Tienes cambios sin guardar en este día.</p>
-      )}
-
-      {onFillWeekdays && (
         <Button
           type="button"
-          variant="secondary"
-          size="sm"
-          disabled={!hasHours}
-          onClick={() => onFillWeekdays(draft)}
-          className="h-9 justify-center rounded-xl"
+          onClick={handleSave}
+          disabled={!canSave}
+          className="h-10 justify-center rounded-xl"
+          aria-live="polite"
         >
-          <CalendarRange className="size-4" />
-          Aplicar a toda la semana (L–V)
+          {!dirty && exists ? (
+            <>
+              <Check className="size-4" />
+              Guardado
+            </>
+          ) : (
+            <>
+              <Save className="size-4" />
+              {exists ? 'Actualizar' : 'Guardar'}
+            </>
+          )}
         </Button>
-      )}
 
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={onClear}
-        disabled={!exists}
-        className="self-start rounded-lg text-destructive hover:text-destructive"
-      >
-        <Trash2 className="size-4" />
-        Vaciar día
-      </Button>
+        {dirty && (
+          <p className="-mt-2 text-center text-xs text-muted-foreground">Tienes cambios sin guardar en este día.</p>
+        )}
+
+        {onFillWeekdays && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={!hasHours}
+            onClick={() => onFillWeekdays(draft)}
+            className="h-9 justify-center rounded-xl"
+          >
+            <CalendarRange className="size-4" />
+            Aplicar a toda la semana (L–V)
+          </Button>
+        )}
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onClear}
+          disabled={!exists}
+          className="self-start rounded-lg text-destructive hover:text-destructive"
+        >
+          <Trash2 className="size-4" />
+          Vaciar día
+        </Button>
+      </div>
     </div>
   )
 }

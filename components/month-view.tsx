@@ -224,11 +224,11 @@ export function MonthView({ cursor, entries, settings, selectedISO, onSelect, on
   }
 
   return (
-    <div className="flex flex-col select-none">
-      <div className="border-b border-border/60 bg-muted/40 p-2">
+    <div className="flex h-full min-h-0 flex-1 flex-col select-none">
+      <div className="shrink-0 border-b border-border/60 bg-muted/40 p-2">
         <p className="text-center font-heading text-md font-semibold tracking-tight">{monthOnlyName(displayCursor)}</p>
       </div>
-      <div className="grid grid-cols-7 border-b border-border/60 bg-muted/40 px-1">
+      <div className="grid shrink-0 grid-cols-7 border-b border-border/60 bg-muted/40 px-1">
         {Array.from({ length: 7 }, (_, i) => (
           <div
             key={i}
@@ -241,14 +241,14 @@ export function MonthView({ cursor, entries, settings, selectedISO, onSelect, on
 
       <div
         ref={viewportRef}
-        className={`relative overflow-hidden ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`relative min-h-0 flex-1 overflow-hidden ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         style={{ touchAction: dragging ? 'none' : 'pan-y' }}
         onPointerDown={onPointerDown}
         role="region"
         aria-label="Calendario mensual. Desliza horizontalmente para cambiar de mes."
       >
         <div
-          className="flex w-[300%] will-change-transform"
+          className={`flex h-full w-[300%] ${dragging || animating ? 'will-change-transform' : ''}`}
           style={{
             transform: `translate3d(calc(-33.333% + ${dragX}px), 0, 0)`,
             transition: animating && !dragging ? `transform ${SLIDE_MS}ms cubic-bezier(0.22, 1, 0.36, 1)` : 'none',
@@ -305,14 +305,20 @@ function MonthGrid({
   const money = (n: number) => formatMoney(n, settings.currency, settings.locale)
 
   return (
-    <div className="grid w-1/3 shrink-0 grid-cols-7" aria-hidden={inert || undefined} inert={inert || undefined}>
-      {days.map((day) => {
+    <div
+      className="grid h-full w-1/3 shrink-0 grid-cols-7 grid-rows-6"
+      aria-hidden={inert || undefined}
+      inert={inert || undefined}
+    >
+      {days.map((day, i) => {
         const iso = toISO(day)
         const entry = entries[iso]
         const totals = entry ? entryTotals(entry, settings) : null
         const inMonth = day.getMonth() === currentMonth
         const selected = !inert && iso === selectedISO
         const today = isToday(day)
+        const lastRow = i >= days.length - 7
+        const col = i % 7
         const activeTypes = entry
           ? settings.hourTypes.filter((t) => (totals?.hoursByType[t.id] ?? entry.hours[t.id] ?? 0) > 0)
           : []
@@ -326,7 +332,9 @@ function MonthGrid({
             tabIndex={inert ? -1 : undefined}
             aria-pressed={selected}
             aria-label={`Día ${day.getDate()}${totals && totals.totalHours > 0 ? `, ${formatHoursClock(totals.totalHours)}` : ''}`}
-            className={`group flex min-h-[4.75rem] flex-col gap-1 border-b border-r border-border/50 p-1.5 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:min-h-24 sm:p-2 ${
+            className={`group flex h-full min-h-[4.75rem] flex-col gap-1 border-r border-border/50 p-2.5 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:min-h-20 sm:p-2 ${
+              lastRow ? '' : 'border-b'
+            } ${lastRow && col === 0 ? 'rounded-bl-2xl' : ''} ${lastRow && col === 6 ? 'rounded-br-2xl' : ''} ${
               inMonth ? 'hover:bg-accent/45' : 'bg-muted/25 text-muted-foreground hover:bg-muted/40'
             } ${selected ? 'bg-accent/55 ring-2 ring-inset ring-primary' : ''} ${
               hasHours && inMonth && !selected ? 'bg-primary/[0.03]' : ''

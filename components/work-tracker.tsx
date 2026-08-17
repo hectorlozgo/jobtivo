@@ -329,9 +329,9 @@ export function WorkTracker() {
 
           <SummaryCards summary={summary} settings={settings} />
 
-          <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+          <div className="grid gap-6 md:grid-cols-[1fr_380px]">
             {view !== 'dia' && (
-              <div className="surface-panel overflow-hidden">
+              <div className="surface-panel flex min-h-0 flex-col overflow-hidden">
                 {view === 'mes' ? (
                   <MonthView
                     cursor={cursor}
@@ -353,8 +353,8 @@ export function WorkTracker() {
               </div>
             )}
 
-            <div className={`surface-panel p-5 sm:p-6 ${view === 'dia' ? 'lg:col-span-2' : ''}`}>
-              <DayEditor
+            <div className={`surface-panel flex min-h-0 flex-col p-5 sm:p-6 ${view === 'dia' ? 'lg:col-span-2' : ''}`}>
+º              <DayEditor
                 dateISO={selectedISO}
                 entry={selectedEntry}
                 exists={selectedExists}

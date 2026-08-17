@@ -228,7 +228,7 @@ export function isDatabaseUnavailable(error: unknown): boolean {
     return true
   }
   const msg = error instanceof Error ? error.message : String(error)
-  return /DATABASE_URL no configurada|can't reach database|ECONNREFUSED|ECONNRESET|connection terminated|timeout exceeded|Connection.*refused/i.test(
+  return /DATABASE_URL no configurada|can't reach database|ECONNREFUSED|ECONNRESET|connection terminated|timeout exceeded|Connection.*refused|too many clients|remaining connection slots|MaxClientsInSessionMode|connection pool/i.test(
     msg,
   )
 }
@@ -253,14 +253,16 @@ export function getDb(): PrismaClient {
     return globalThis.__prisma
   }
 
-  const pool = new Pool({ connectionString: databaseUrl })
+  // Un cliente por isolate (también en producción: serverless reutiliza el proceso).
+  const pool = new Pool({
+    connectionString: databaseUrl,
+    max: process.env.NODE_ENV === 'production' ? 1 : 5,
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 8_000,
+  })
   const adapter = new PrismaPg(pool)
   const client = new PrismaClient({ adapter })
-
-  if (process.env.NODE_ENV !== 'production') {
-    globalThis.__prisma = client
-  }
-
+  globalThis.__prisma = client
   return client
 }
 

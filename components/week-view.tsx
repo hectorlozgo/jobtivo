@@ -20,7 +20,7 @@ export function WeekView({ cursor, entries, settings, selectedISO, onSelect }: W
   const money = (n: number) => formatMoney(n, settings.currency, settings.locale)
 
   return (
-    <div className="flex flex-col divide-y divide-border/60">
+    <div className="flex h-full min-h-0 flex-1 flex-col divide-y divide-border/60">
       {days.map((day, i) => {
         const iso = toISO(day)
         const entry = entries[iso]
@@ -36,7 +36,7 @@ export function WeekView({ cursor, entries, settings, selectedISO, onSelect }: W
             type="button"
             onClick={() => onSelect(iso)}
             aria-pressed={selected}
-            className={`flex items-center gap-3 px-3 py-3.5 text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-4 ${
+            className={`flex min-h-0 flex-1 items-center gap-3 px-3 py-3.5 text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-4 ${
               selected
                 ? "bg-accent/70"
                 : hasHours

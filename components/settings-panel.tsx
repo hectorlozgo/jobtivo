@@ -21,8 +21,11 @@ import {
 import { hourColorVar } from "@/lib/hour-colors"
 import { clampBreakMinutes, clampPercent, clampRate } from "@/lib/validation"
 import {
+  type Category,
+  type HourType,
   type Settings,
   MAX_BREAK_MINUTES,
+  MAX_CATALOG_NAME,
   MAX_CATEGORIES,
   MAX_HOUR_TYPES,
   makeCatalogId,
@@ -115,6 +118,102 @@ function NumberField({
   )
 }
 
+/** Abreviatura sugerida: iniciales si hay varias palabras, si no las 3 primeras letras. */
+function suggestShort(name: string): string {
+  const trimmed = name.trim()
+  if (!trimmed) return ""
+  const parts = trimmed.split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) {
+    return parts
+      .map((p) => p[0])
+      .join("")
+      .slice(0, 4)
+      .toUpperCase()
+  }
+  return trimmed.slice(0, 3)
+}
+
+function CatalogTextField({
+  id,
+  value,
+  onCommit,
+  max = MAX_CATALOG_NAME,
+  placeholder,
+  className,
+}: {
+  id: string
+  value: string
+  onCommit: (value: string) => void
+  max?: number
+  placeholder?: string
+  className?: string
+}) {
+  const [text, setText] = useState(value)
+  const focusedRef = useRef(false)
+
+  useEffect(() => {
+    if (!focusedRef.current) setText(value)
+  }, [value])
+
+  function commit() {
+    const next = text.trim().slice(0, max)
+    if (next) onCommit(next)
+    else setText(value)
+  }
+
+  return (
+    <Input
+      id={id}
+      value={text}
+      placeholder={placeholder}
+      autoComplete="off"
+      autoCorrect="off"
+      spellCheck={false}
+      maxLength={max}
+      onFocus={() => {
+        focusedRef.current = true
+      }}
+      onChange={(e) => setText(e.target.value.slice(0, max))}
+      onBlur={() => {
+        focusedRef.current = false
+        commit()
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur()
+      }}
+      className={className}
+    />
+  )
+}
+
+type CategoryDraft = {
+  id: string
+  name: string
+  short: string
+  shortTouched: boolean
+}
+
+type HourTypeDraft = {
+  id: string
+  label: string
+}
+
+function categoryFromDraft(draft: CategoryDraft): Category {
+  const name = draft.name.trim().slice(0, MAX_CATALOG_NAME)
+  const shortRaw = draft.shortTouched ? draft.short.trim() : suggestShort(name)
+  const short = (shortRaw || suggestShort(name) || name.slice(0, 4)).slice(0, 12)
+  return {
+    id: makeCatalogId("actividad", name),
+    name,
+    short,
+  }
+}
+
+function hourTypeFromDraft(draft: HourTypeDraft): HourType {
+  const label = draft.label.trim().slice(0, MAX_CATALOG_NAME)
+  return { id: makeCatalogId("hora", label), label }
+}
+
 function rebuildRates(settings: Settings): Settings["rates"] {
   const rates: Settings["rates"] = {}
   for (const cat of settings.categories) {
@@ -130,9 +229,46 @@ function rebuildRates(settings: Settings): Settings["rates"] {
 
 export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
   const currencySuffix = settings.currency === "EUR" ? "€" : settings.currency
+  const [categoryDrafts, setCategoryDrafts] = useState<CategoryDraft[]>([])
+  const [hourTypeDrafts, setHourTypeDrafts] = useState<HourTypeDraft[]>([])
+  const [focusDraftId, setFocusDraftId] = useState<string | null>(null)
+  const categoryDraftsRef = useRef(categoryDrafts)
+  const hourTypeDraftsRef = useRef(hourTypeDrafts)
+  const settingsRef = useRef(settings)
+  const onChangeRef = useRef(onChange)
+  categoryDraftsRef.current = categoryDrafts
+  hourTypeDraftsRef.current = hourTypeDrafts
+  settingsRef.current = settings
+  onChangeRef.current = onChange
+
+  useEffect(() => {
+    if (!focusDraftId) return
+    document.getElementById(focusDraftId)?.focus()
+    setFocusDraftId(null)
+  }, [focusDraftId, categoryDrafts, hourTypeDrafts])
+
+  useEffect(() => {
+    return () => {
+      const cats = categoryDraftsRef.current.filter((d) => d.name.trim())
+      const types = hourTypeDraftsRef.current.filter((d) => d.label.trim())
+      if (cats.length === 0 && types.length === 0) return
+      const next: Settings = { ...settingsRef.current }
+      if (cats.length > 0) {
+        next.categories = [...next.categories, ...cats.map(categoryFromDraft)]
+      }
+      if (types.length > 0) {
+        next.hourTypes = [...next.hourTypes, ...types.map(hourTypeFromDraft)]
+      }
+      next.rates = rebuildRates(next)
+      if (!next.categories.some((c) => c.id === next.defaultCategory)) {
+        next.defaultCategory = next.categories[0]?.id ?? next.defaultCategory
+      }
+      onChangeRef.current(next)
+    }
+  }, [])
 
   function patch(partial: Partial<Settings>) {
-    const next = { ...settings, ...partial }
+    const next = { ...settingsRef.current, ...partial }
     if (partial.categories || partial.hourTypes) {
       next.rates = rebuildRates(next)
       if (!next.categories.some((c) => c.id === next.defaultCategory)) {
@@ -170,19 +306,54 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
   }
 
   function updateCategory(id: string, field: "name" | "short", value: string) {
+    const max = field === "short" ? 12 : MAX_CATALOG_NAME
+    const next = value.trim().slice(0, max)
+    if (!next) return
     patch({
       categories: settings.categories.map((c) =>
-        c.id === id ? { ...c, [field]: value.slice(0, field === "short" ? 12 : 40) } : c,
+        c.id === id ? { ...c, [field]: next } : c,
       ),
     })
   }
 
-  function addCategory() {
-    if (settings.categories.length >= MAX_CATEGORIES) return
-    const id = makeCatalogId("actividad", "Actividad")
+  function commitCategoryDraft(id: string) {
+    const draft = categoryDraftsRef.current.find((d) => d.id === id)
+    if (!draft?.name.trim()) return
     patch({
-      categories: [...settings.categories, { id, name: "Nuevo", short: "N" }],
+      categories: [...settingsRef.current.categories, categoryFromDraft(draft)],
     })
+    setCategoryDrafts((d) => d.filter((x) => x.id !== id))
+  }
+
+  function commitHourTypeDraft(id: string) {
+    const draft = hourTypeDraftsRef.current.find((d) => d.id === id)
+    if (!draft?.label.trim()) return
+    patch({
+      hourTypes: [...settingsRef.current.hourTypes, hourTypeFromDraft(draft)],
+    })
+    setHourTypeDrafts((d) => d.filter((x) => x.id !== id))
+  }
+
+  function addCategory() {
+    const ready = categoryDrafts.filter((d) => d.name.trim())
+    const empty = categoryDrafts.filter((d) => !d.name.trim())
+    if (ready.length > 0) {
+      patch({
+        categories: [...settings.categories, ...ready.map(categoryFromDraft)],
+      })
+    }
+    if (empty.length > 0) {
+      setCategoryDrafts(empty)
+      setFocusDraftId(`cat-name-${empty[0].id}`)
+      return
+    }
+    if (settings.categories.length + ready.length >= MAX_CATEGORIES) {
+      setCategoryDrafts([])
+      return
+    }
+    const id = makeCatalogId("actividad", "Actividad")
+    setCategoryDrafts([{ id, name: "", short: "", shortTouched: false }])
+    setFocusDraftId(`cat-name-${id}`)
   }
 
   function removeCategory(id: string) {
@@ -190,25 +361,56 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
     patch({ categories: settings.categories.filter((c) => c.id !== id) })
   }
 
+  function removeCategoryDraft(id: string) {
+    setCategoryDrafts((d) => d.filter((x) => x.id !== id))
+  }
+
   function updateHourType(id: string, label: string) {
+    const next = label.trim().slice(0, MAX_CATALOG_NAME)
+    if (!next) return
     patch({
       hourTypes: settings.hourTypes.map((t) =>
-        t.id === id ? { ...t, label: label.slice(0, 40) } : t,
+        t.id === id ? { ...t, label: next } : t,
       ),
     })
   }
 
   function addHourType() {
-    if (settings.hourTypes.length >= MAX_HOUR_TYPES) return
+    const ready = hourTypeDrafts.filter((d) => d.label.trim())
+    const empty = hourTypeDrafts.filter((d) => !d.label.trim())
+    if (ready.length > 0) {
+      patch({ hourTypes: [...settings.hourTypes, ...ready.map(hourTypeFromDraft)] })
+    }
+    if (empty.length > 0) {
+      setHourTypeDrafts(empty)
+      setFocusDraftId(`ht-${empty[0].id}`)
+      return
+    }
+    if (settings.hourTypes.length + ready.length >= MAX_HOUR_TYPES) {
+      setHourTypeDrafts([])
+      return
+    }
     const id = makeCatalogId("hora", "Hora")
-    patch({
-      hourTypes: [...settings.hourTypes, { id, label: "Nuevo tipo" }],
-    })
+    setHourTypeDrafts([{ id, label: "" }])
+    setFocusDraftId(`ht-${id}`)
   }
 
   function removeHourType(id: string) {
     if (settings.hourTypes.length <= 1) return
     patch({ hourTypes: settings.hourTypes.filter((t) => t.id !== id) })
+  }
+
+  function removeHourTypeDraft(id: string) {
+    setHourTypeDrafts((d) => d.filter((x) => x.id !== id))
+  }
+
+  function onDraftRowBlur(
+    e: React.FocusEvent<HTMLDivElement>,
+    commit: () => void,
+  ) {
+    const next = e.relatedTarget as Node | null
+    if (next && e.currentTarget.contains(next)) return
+    commit()
   }
 
   return (
@@ -281,10 +483,11 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
                 <Label htmlFor={`cat-name-${cat.id}`} className="text-xs">
                   Nombre
                 </Label>
-                <Input
+                <CatalogTextField
                   id={`cat-name-${cat.id}`}
                   value={cat.name}
-                  onChange={(e) => updateCategory(cat.id, "name", e.target.value)}
+                  onCommit={(value) => updateCategory(cat.id, "name", value)}
+                  placeholder="Nombre de la actividad"
                   className="rounded-xl"
                 />
               </div>
@@ -292,10 +495,12 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
                 <Label htmlFor={`cat-short-${cat.id}`} className="text-xs">
                   Abrev.
                 </Label>
-                <Input
+                <CatalogTextField
                   id={`cat-short-${cat.id}`}
                   value={cat.short}
-                  onChange={(e) => updateCategory(cat.id, "short", e.target.value)}
+                  onCommit={(value) => updateCategory(cat.id, "short", value)}
+                  max={12}
+                  placeholder="Abrev."
                   className="rounded-xl"
                 />
               </div>
@@ -312,17 +517,102 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
               </Button>
             </div>
           ))}
+          {categoryDrafts.map((draft) => (
+            <div
+              key={draft.id}
+              className="flex flex-wrap items-end gap-2 rounded-xl border border-dashed border-border/80 bg-muted/10 p-3"
+              onBlur={(e) => onDraftRowBlur(e, () => commitCategoryDraft(draft.id))}
+            >
+              <div className="flex min-w-40 flex-1 flex-col gap-1.5">
+                <Label htmlFor={`cat-name-${draft.id}`} className="text-xs">
+                  Nombre
+                </Label>
+                <Input
+                  id={`cat-name-${draft.id}`}
+                  value={draft.name}
+                  placeholder="Escribe el nombre"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  autoFocus={!draft.name}
+                  maxLength={MAX_CATALOG_NAME}
+                  onChange={(e) => {
+                    const name = e.target.value.slice(0, MAX_CATALOG_NAME)
+                    setCategoryDrafts((all) =>
+                      all.map((d) =>
+                        d.id === draft.id
+                          ? {
+                              ...d,
+                              name,
+                              short: d.shortTouched ? d.short : suggestShort(name),
+                            }
+                          : d,
+                      ),
+                    )
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") e.currentTarget.blur()
+                  }}
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="flex w-24 flex-col gap-1.5">
+                <Label htmlFor={`cat-short-${draft.id}`} className="text-xs">
+                  Abrev.
+                </Label>
+                <Input
+                  id={`cat-short-${draft.id}`}
+                  value={draft.short}
+                  placeholder="Abrev."
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  maxLength={12}
+                  onChange={(e) => {
+                    const short = e.target.value.slice(0, 12)
+                    setCategoryDrafts((all) =>
+                      all.map((d) =>
+                        d.id === draft.id ? { ...d, short, shortTouched: true } : d,
+                      ),
+                    )
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") e.currentTarget.blur()
+                  }}
+                  className="rounded-xl"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={() => removeCategoryDraft(draft.id)}
+                aria-label="Descartar actividad"
+                className="rounded-xl text-destructive hover:text-destructive"
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          ))}
           <Button
             type="button"
             variant="outline"
             size="sm"
-            disabled={settings.categories.length >= MAX_CATEGORIES}
+            disabled={
+              settings.categories.length + categoryDrafts.length >= MAX_CATEGORIES
+            }
             onClick={addCategory}
             className="self-start"
           >
             <Plus className="size-4" />
             Añadir actividad
           </Button>
+          {categoryDrafts.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Se guarda al escribir un nombre y salir del recuadro.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -348,10 +638,11 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
                       backgroundColor: `var(${hourColorVar(t.id, settings.hourTypes)})`,
                     }}
                   />
-                  <Input
+                  <CatalogTextField
                     id={`ht-${t.id}`}
                     value={t.label}
-                    onChange={(e) => updateHourType(t.id, e.target.value)}
+                    onCommit={(value) => updateHourType(t.id, value)}
+                    placeholder="Tipo de hora"
                     className="pl-7"
                   />
                 </div>
@@ -369,17 +660,72 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
               </Button>
             </div>
           ))}
+          {hourTypeDrafts.map((draft) => (
+            <div
+              key={draft.id}
+              className="flex flex-wrap items-end gap-2"
+              onBlur={(e) => onDraftRowBlur(e, () => commitHourTypeDraft(draft.id))}
+            >
+              <div className="flex min-w-40 flex-1 flex-col gap-1.5">
+                <Label htmlFor={`ht-${draft.id}`} className="text-xs">
+                  Etiqueta
+                </Label>
+                <div className="relative">
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-2.5 top-1/2 size-2.5 -translate-y-1/2 rounded-full bg-muted-foreground/40"
+                  />
+                  <Input
+                    id={`ht-${draft.id}`}
+                    value={draft.label}
+                    placeholder="Escribe el tipo de hora"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    autoFocus={!draft.label}
+                    maxLength={MAX_CATALOG_NAME}
+                    onChange={(e) => {
+                      const label = e.target.value.slice(0, MAX_CATALOG_NAME)
+                      setHourTypeDrafts((all) =>
+                        all.map((d) => (d.id === draft.id ? { ...d, label } : d)),
+                      )
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") e.currentTarget.blur()
+                    }}
+                    className="pl-7"
+                  />
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={() => removeHourTypeDraft(draft.id)}
+                aria-label="Descartar tipo de hora"
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          ))}
           <Button
             type="button"
             variant="outline"
             size="sm"
-            disabled={settings.hourTypes.length >= MAX_HOUR_TYPES}
+            disabled={settings.hourTypes.length + hourTypeDrafts.length >= MAX_HOUR_TYPES}
             onClick={addHourType}
             className="self-start"
           >
             <Plus className="size-4" />
             Añadir tipo de hora
           </Button>
+          {hourTypeDrafts.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Se guarda al escribir una etiqueta y salir del recuadro.
+            </p>
+          )}
         </CardContent>
       </Card>
 

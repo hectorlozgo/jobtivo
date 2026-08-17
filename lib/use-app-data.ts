@@ -1,13 +1,16 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import useSWR from 'swr'
 import { toast } from 'sonner'
 
 import { type AppData, type DayEntry, type Settings, DEFAULT_DATA } from '@/lib/types'
-import { sanitizeData } from '@/lib/validation'
+import { sanitizeData, sanitizeSettings } from '@/lib/validation'
 
 const KEY = '/api/data'
 const OFFLINE_MESSAGE = 'No hay conexión con el servidor. Inténtalo de nuevo.'
+/** Evita un PUT por tecla (en móvil saturaba el pool y fallaba la lectura). */
+const SETTINGS_SAVE_MS = 450
 
 function isNetworkError(err: unknown): boolean {
   if (err instanceof TypeError) return true
@@ -46,7 +49,7 @@ async function fetcher(url: string): Promise<AppData> {
   return sanitizeData(await res.json())
 }
 
-async function mutateRequest(input: string, init: RequestInit, fallback: string) {
+async function mutateRequest(input: string, init: RequestInit, fallback: string): Promise<unknown> {
   let res: Response
   try {
     res = await fetch(input, { ...init, credentials: 'include' })
@@ -58,6 +61,13 @@ async function mutateRequest(input: string, init: RequestInit, fallback: string)
     throw new Error('No autenticado')
   }
   if (!res.ok) throw new Error(await parseError(res, fallback))
+  const text = await res.text()
+  if (!text) return null
+  try {
+    return JSON.parse(text) as unknown
+  } catch {
+    return null
+  }
 }
 
 function toastIfUserFacing(err: unknown, fallback: string) {
@@ -81,6 +91,74 @@ export function useAppData() {
   })
 
   const appData = data ?? DEFAULT_DATA
+  const dataRef = useRef(appData)
+  dataRef.current = appData
+  const mutateRef = useRef(mutate)
+  mutateRef.current = mutate
+  const pendingSettingsRef = useRef<Settings | null>(null)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const savingRef = useRef(false)
+
+  async function persistPendingSettings() {
+    if (savingRef.current) return
+    const next = pendingSettingsRef.current
+    if (!next) return
+    pendingSettingsRef.current = null
+    savingRef.current = true
+    const optimistic: AppData = { ...dataRef.current, settings: next }
+    try {
+      await mutateRef.current(
+        async () => {
+          const raw = await mutateRequest(
+            '/api/settings',
+            {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(next),
+            },
+            'No se pudieron guardar los ajustes',
+          )
+          return { ...dataRef.current, settings: sanitizeSettings(raw) }
+        },
+        { optimisticData: optimistic, revalidate: false, rollbackOnError: true },
+      )
+    } catch (err) {
+      toastIfUserFacing(err, 'No se pudieron guardar los ajustes')
+      if (!pendingSettingsRef.current) {
+        try {
+          await mutateRef.current(fetcher(KEY), { revalidate: false })
+        } catch {
+          // El toast de ajustes ya se mostró.
+        }
+      }
+    } finally {
+      savingRef.current = false
+      if (pendingSettingsRef.current) void persistPendingSettings()
+    }
+  }
+
+  function flushSettingsNow() {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
+    }
+    void persistPendingSettings()
+  }
+
+  useEffect(() => {
+    function onHide() {
+      if (document.visibilityState === 'hidden') flushSettingsNow()
+    }
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('pagehide', flushSettingsNow)
+    return () => {
+      document.removeEventListener('visibilitychange', onHide)
+      window.removeEventListener('pagehide', flushSettingsNow)
+      flushSettingsNow()
+    }
+    // Solo al montar/desmontar el hook.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function saveEntry(entry: DayEntry) {
     const optimistic: AppData = {
@@ -166,27 +244,14 @@ export function useAppData() {
     }
   }
 
-  async function saveSettings(settings: Settings) {
-    const optimistic: AppData = { ...appData, settings }
-    try {
-      await mutate(
-        async () => {
-          await mutateRequest(
-            '/api/settings',
-            {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(settings)
-            },
-            'No se pudieron guardar los ajustes',
-          )
-          return fetcher(KEY)
-        },
-        { optimisticData: optimistic, revalidate: false, rollbackOnError: true }
-      )
-    } catch (err) {
-      toastIfUserFacing(err, 'No se pudieron guardar los ajustes')
-    }
+  function saveSettings(settings: Settings) {
+    pendingSettingsRef.current = settings
+    void mutate({ ...dataRef.current, settings }, { revalidate: false })
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = null
+      void persistPendingSettings()
+    }, SETTINGS_SAVE_MS)
   }
 
   return {
