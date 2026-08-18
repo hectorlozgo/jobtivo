@@ -354,7 +354,7 @@ export function WorkTracker() {
             )}
 
             <div className={`surface-panel flex min-h-0 flex-col p-5 sm:p-6 ${view === 'dia' ? 'lg:col-span-2' : ''}`}>
-º              <DayEditor
+              <DayEditor
                 dateISO={selectedISO}
                 entry={selectedEntry}
                 exists={selectedExists}
