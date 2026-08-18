@@ -28,6 +28,7 @@ import {
   MAX_CATALOG_NAME,
   MAX_CATEGORIES,
   MAX_HOUR_TYPES,
+  categoryLabel,
   makeCatalogId,
 } from "@/lib/types"
 import { Plus, Trash2 } from "lucide-react"
@@ -449,6 +450,10 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
               onValueChange={(v) => {
                 if (v) setDefaultCategory(v)
               }}
+              items={settings.categories.map((c) => ({
+                value: c.id,
+                label: categoryLabel(settings, c.id),
+              }))}
             >
               <SelectTrigger id="default-category" className="w-full">
                 <SelectValue />
@@ -456,7 +461,7 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
               <SelectContent>
                 {settings.categories.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
-                    {c.name} ({c.short})
+                    {categoryLabel(settings, c.id)}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { HoursInput } from '@/components/hours-input'
 import { entryTotals, formatDurationHours, formatMoney } from '@/lib/calc'
 import { hourColorVar } from '@/lib/hour-colors'
-import { type DayEntry, type Settings, MAX_BREAK_MINUTES, MAX_TOTAL_HOURS_PER_DAY } from '@/lib/types'
+import { type DayEntry, type Settings, MAX_BREAK_MINUTES, MAX_TOTAL_HOURS_PER_DAY, categoryLabel } from '@/lib/types'
 import { clampBreakMinutes } from '@/lib/validation'
 import { formatLongDate } from '@/lib/dates'
 import { CalendarRange, Check, Save, Trash2 } from 'lucide-react'
@@ -85,6 +85,10 @@ export function DayEditor({ dateISO, entry, exists, settings, onSave, onClear, o
           onValueChange={(v) => {
             if (v) setCategory(v)
           }}
+          items={settings.categories.map((c) => ({
+            value: c.id,
+            label: categoryLabel(settings, c.id),
+          }))}
         >
           <SelectTrigger id="category" className="w-full rounded-xl">
             <SelectValue />
@@ -92,7 +96,7 @@ export function DayEditor({ dateISO, entry, exists, settings, onSave, onClear, o
           <SelectContent>
             {settings.categories.map((c) => (
               <SelectItem key={c.id} value={c.id}>
-                {c.name} ({c.short})
+                {categoryLabel(settings, c.id)}
               </SelectItem>
             ))}
           </SelectContent>
